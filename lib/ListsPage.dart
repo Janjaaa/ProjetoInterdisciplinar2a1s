@@ -111,21 +111,21 @@ class Produto {
   final String picture;
   final String name;
   final String brand;
-  final num quantity;
+  final num weight;
 
-  Produto(this.picture, this.name, this.brand, this.quantity);
+  Produto(this.picture, this.name, this.brand, this.weight);
 
   Produto.fromJson(Map<String, dynamic> json)
       : picture = json['picture'] as String,
         name = json['name'] as String,
         brand = json['brand'] as String,
-        quantity = json['quantity'] as num;
+        weight = json['weight'] as num;
 
   Map<String, dynamic> toJson() => {
         'picture': picture,
         'name': name,
         'brand': brand,
-        'quantity': quantity,
+        'weight': weight,
       };
 }
 
@@ -267,70 +267,9 @@ class _PantryState extends State<Pantry> {
                           .replaceAll('&#x3D;', '=')
                           .replaceAll('&#x2B;', '+');
                       final decodedBytes = base64Decode(cleanedBase64String);
-                      return Container(
-                        padding: EdgeInsets.symmetric(
-                            vertical: 10.0, horizontal: 15.0),
-                        margin: EdgeInsets.symmetric(
-                            vertical: 5.0, horizontal: 10.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.5),
-                              spreadRadius: 2,
-                              blurRadius: 5,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 50,
-                              height: 50,
-                              child: Image.memory(
-                                decodedBytes,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    products[i].name,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'X ${products[i].quantity}',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.add_circle, color: Colors.green),
-                              onPressed: () {
-                                // Implement increment functionality
-                              },
-                            ),
-                            IconButton(
-                              icon:
-                                  Icon(Icons.remove_circle, color: Colors.red),
-                              onPressed: () {
-                                // Implement decrement functionality
-                              },
-                            ),
-                          ],
-                        ),
+                      return ProductItem(
+                        product: products[i],
+                        decodedBytes: decodedBytes,
                       );
                     },
                   ),
@@ -344,6 +283,334 @@ class _PantryState extends State<Pantry> {
                     child: Icon(Icons.add),
                   ),
                 ),
+              ],
+            );
+          } else {
+            return Center(child: Text('No data'));
+          }
+        },
+      ),
+    );
+  }
+}
+
+class ProductItemPantry extends StatefulWidget {
+  final Product product;
+  final Uint8List decodedBytes;
+
+  ProductItemPantry({required this.product, required this.decodedBytes});
+
+  @override
+  _ProductItemPantry createState() => _ProductItemPantry();
+}
+
+class _ProductItemPantry extends State<ProductItemPantry> {
+  int quantity = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
+      margin: EdgeInsets.symmetric(vertical: 5.0, horizontal: 10.0),
+      decoration: BoxDecoration(
+        color: Color(0xFFD9D9D9),
+        borderRadius: BorderRadius.circular(10.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.5),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 50,
+            height: 50,
+            child: Image.memory(
+              widget.decodedBytes,
+              fit: BoxFit.cover,
+            ),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.product.name,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  widget.product.weight.toString(),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    quantity++;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  padding: EdgeInsets.all(8.0),
+                  backgroundColor: Colors.green,
+                  minimumSize: Size(40, 40),
+                  maximumSize: Size(40, 40),
+                ),
+                child: Icon(Icons.add, color: Colors.black),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Text(
+                  'X $quantity',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    if (quantity > 0) {
+                      quantity--;
+                    }
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  padding: EdgeInsets.all(8.0),
+                  backgroundColor: Colors.red,
+                  minimumSize: Size(40, 40),
+                  maximumSize: Size(40, 40),
+                ),
+                child: Icon(Icons.remove, color: Colors.black),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ProductItem extends StatefulWidget {
+  final Product product;
+  final Uint8List decodedBytes;
+
+  ProductItem({required this.product, required this.decodedBytes});
+
+  @override
+  _ProductItemState createState() => _ProductItemState();
+}
+
+class _ProductItemState extends State<ProductItem> {
+  int quantity = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
+      margin: EdgeInsets.symmetric(vertical: 5.0, horizontal: 10.0),
+      decoration: BoxDecoration(
+        color: Color(0xFFD9D9D9),
+        borderRadius: BorderRadius.circular(10.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.5),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 50,
+            height: 50,
+            child: Image.memory(
+              widget.decodedBytes,
+              fit: BoxFit.cover,
+            ),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.product.name,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  widget.product.weight.toString(),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    quantity++;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  padding: EdgeInsets.all(8.0),
+                  backgroundColor: Colors.green,
+                  minimumSize: Size(40, 40),
+                  maximumSize: Size(40, 40),
+                ),
+                child: Icon(Icons.add, color: Colors.black),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Text(
+                  'X ${quantity + widget.product.quantity}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    if (quantity > 0) {
+                      quantity--;
+                    }
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  padding: EdgeInsets.all(8.0),
+                  backgroundColor: Colors.red,
+                  minimumSize: Size(40, 40),
+                  maximumSize: Size(40, 40),
+                ),
+                child: Icon(Icons.remove, color: Colors.black),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ShopList extends StatefulWidget {
+  const ShopList({super.key});
+  @override
+  State<ShopList> createState() => _ShopList();
+}
+
+class _ShopList extends State<ShopList> {
+  final nameController = TextEditingController();
+  final weightController = TextEditingController();
+
+  final ValueNotifier<int> q = ValueNotifier<int>(0);
+
+  late Future<List<Product>> pantryFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    pantryFuture = fetchBuyListItem();
+  }
+
+  refresh() {
+    setState(() {});
+  }
+
+  Future<List<Product>> fetchBuyListItem() async {
+    var url = Uri.parse('http://localhost:3000/house/buylistitems');
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = await prefs.getString('token');
+    token = token!.substring(1, token.length - 1);
+
+    final response = await http.get(url, headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    });
+    if (response.statusCode == 200) {
+      List<dynamic> jsonList = jsonDecode(response.body) as List<dynamic>;
+      List<Product> products = jsonList
+          .map((json) => Product.fromJson(json as Map<String, dynamic>))
+          .toList();
+      products.sort((a, b) => a.name.compareTo(b.name));
+      return products;
+    } else {
+      print('Failed to load pantry items');
+      throw Exception('Failed to load pantry items');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: FutureBuilder<List<Product>>(
+        future: fetchBuyListItem(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (snapshot.hasData) {
+            List<Product> products = snapshot.data!;
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: products.length,
+                    itemBuilder: (context, i) {
+                      String? cleanedBase64String =
+                          products[i].picUrl?.split(',').last;
+                      cleanedBase64String = cleanedBase64String!
+                          .replaceAll(RegExp(r'\s'), '')
+                          .replaceAll('&#x2F;', '/')
+                          .replaceAll('&#x3D;', '=')
+                          .replaceAll('&#x2B;', '+');
+                      final decodedBytes = base64Decode(cleanedBase64String);
+                      return ProductItem(
+                        product: products[i],
+                        decodedBytes: decodedBytes,
+                      );
+                    },
+                  ),
+                ),
+                AddContainers(q: q, callback: refresh)
               ],
             );
           } else {
@@ -458,7 +725,7 @@ class _AddContainersState extends State<AddContainers> {
                                   ],
                                   controller: weightController,
                                   decoration:
-                                      InputDecoration(labelText: 'Quantidade:'),
+                                      InputDecoration(labelText: 'Peso:'),
                                 ),
                               ),
                               Padding(
@@ -480,17 +747,17 @@ class _AddContainersState extends State<AddContainers> {
                                         await addPantryItem(
                                             produto.name,
                                             produto.brand,
-                                            1,
+                                            produto.weight,
                                             produto.picture,
-                                            produto.quantity);
+                                            1);
                                       } else if (tabIndex == 1) {
                                         produtosCompra.add(produto);
                                         await addBuyListItem(
                                             produto.name,
                                             produto.brand,
-                                            1,
+                                            produto.weight,
                                             produto.picture,
-                                            produto.quantity);
+                                            0);
                                       }
                                       widget.callback();
                                       Navigator.of(context).pop();
@@ -505,168 +772,5 @@ class _AddContainersState extends State<AddContainers> {
                     ),
                   ));
         });
-  }
-}
-
-class ShopList extends StatefulWidget {
-  const ShopList({super.key});
-  @override
-  State<ShopList> createState() => _ShopList();
-}
-
-class _ShopList extends State<ShopList> {
-  final nameController = TextEditingController();
-  final weightController = TextEditingController();
-
-  final ValueNotifier<int> q = ValueNotifier<int>(0);
-
-  late Future<List<Product>> pantryFuture;
-  @override
-  void initState() {
-    super.initState();
-    pantryFuture = fetchBuyListItem();
-  }
-
-  refresh() {
-    setState(() {});
-  }
-
-  Future<List<Product>> fetchBuyListItem() async {
-    var url = Uri.parse('http://localhost:3000/house/buylistitems');
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = await prefs.getString('token');
-    token = token!.substring(1, token.length - 1);
-
-    final response = await http.get(url, headers: {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-    });
-    if (response.statusCode == 200) {
-      // If the server did return a 200 OK response,
-      // then parse the JSON.
-      List<dynamic> jsonList = jsonDecode(response.body) as List<dynamic>;
-      List<Product> products = jsonList
-          .map((json) => Product.fromJson(json as Map<String, dynamic>))
-          .toList();
-      products.sort((a, b) => a.name.compareTo(b.name));
-      return products;
-    } else {
-      // If the server did not return a 200 OK response,
-      // then throw an exception.
-      throw Exception('Failed to load pantry items');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: FutureBuilder<List<Product>>(
-        future: fetchBuyListItem(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.hasData) {
-            List<Product> products = snapshot.data!;
-            return Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: products.length,
-                    itemBuilder: (context, i) {
-                      String? cleanedBase64String =
-                          products[i].picUrl?.split(',').last;
-                      cleanedBase64String = cleanedBase64String!
-                          .replaceAll(RegExp(r'\s'), '')
-                          .replaceAll('&#x2F;', '/')
-                          .replaceAll('&#x3D;', '=')
-                          .replaceAll('&#x2B;', '+');
-                      final decodedBytes = base64Decode(cleanedBase64String);
-                      return Container(
-                        padding: EdgeInsets.symmetric(
-                            vertical: 10.0, horizontal: 15.0),
-                        margin: EdgeInsets.symmetric(
-                            vertical: 5.0, horizontal: 10.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.5),
-                              spreadRadius: 2,
-                              blurRadius: 5,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 50,
-                              height: 50,
-                              child: Image.memory(
-                                decodedBytes,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    products[i].name,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'X ${products[i].quantity}',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.add_circle, color: Colors.green),
-                              onPressed: () {
-                                // Implement increment functionality
-                              },
-                            ),
-                            IconButton(
-                              icon:
-                                  Icon(Icons.remove_circle, color: Colors.red),
-                              onPressed: () {
-                                // Implement decrement functionality
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: FloatingActionButton(
-                    onPressed: () {
-                      // Implement add new item functionality
-                    },
-                    child: Icon(Icons.add),
-                  ),
-                ),
-              ],
-            );
-          } else {
-            return Center(child: Text('No data'));
-          }
-        },
-      ),
-    );
   }
 }
