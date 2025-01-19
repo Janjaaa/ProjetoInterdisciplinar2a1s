@@ -274,15 +274,7 @@ class _PantryState extends State<Pantry> {
                     },
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: FloatingActionButton(
-                    onPressed: () {
-                      // Implement add new item functionality
-                    },
-                    child: Icon(Icons.add),
-                  ),
-                ),
+                AddContainers(q: q, callback: refresh)
               ],
             );
           } else {
