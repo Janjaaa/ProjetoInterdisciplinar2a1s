@@ -165,7 +165,44 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(
-          title: Text('Login & Signup'),
+          title: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.menu),
+                        onPressed: () {},
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Search itens',
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.search),
+                        onPressed: () {},
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.account_circle),
+                onPressed: () {},
+              ),
+            ],
+          ),
         ),
         body: Column(
           children: [
@@ -286,17 +323,17 @@ class _PantryState extends State<Pantry> {
   }
 }
 
-class ProductItemPantry extends StatefulWidget {
+class ProductItemShopList extends StatefulWidget {
   final Product product;
   final Uint8List decodedBytes;
 
-  ProductItemPantry({required this.product, required this.decodedBytes});
+  ProductItemShopList({required this.product, required this.decodedBytes});
 
   @override
-  _ProductItemPantry createState() => _ProductItemPantry();
+  _ProductItemShopList createState() => _ProductItemShopList();
 }
 
-class _ProductItemPantry extends State<ProductItemPantry> {
+class _ProductItemShopList extends State<ProductItemShopList> {
   int quantity = 0;
 
   @override
@@ -351,10 +388,8 @@ class _ProductItemPantry extends State<ProductItemPantry> {
           Column(
             children: [
               ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    quantity++;
-                  });
+                onPressed: () async {
+                  await _incrementQuantity();
                 },
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(
@@ -370,7 +405,7 @@ class _ProductItemPantry extends State<ProductItemPantry> {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8.0),
                 child: Text(
-                  'X $quantity',
+                  'X ${quantity + widget.product.quantity}',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey,
@@ -378,12 +413,9 @@ class _ProductItemPantry extends State<ProductItemPantry> {
                 ),
               ),
               ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    if (quantity > 0) {
-                      quantity--;
-                    }
-                  });
+                onPressed: () async {
+                  print(1);
+                  await _decrementQuantity();
                 },
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(
@@ -401,6 +433,68 @@ class _ProductItemPantry extends State<ProductItemPantry> {
         ],
       ),
     );
+  }
+
+  Future<void> _incrementQuantity() async {
+    setState(() {
+      quantity++;
+    });
+
+    var url = Uri.parse(
+        'http://localhost:3000/house/editBuyListItem/${widget.product.id}');
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = await prefs.getString('token');
+    token = token!.substring(1, token.length - 1);
+
+    var response = await http.put(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'quantity': quantity + widget.product.quantity,
+      }),
+    );
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+    if (response.statusCode == 200 && response.body == "Item updated") {
+      print(response.body);
+    } else {
+      print('Failed to update item: ${response.body}');
+    }
+  }
+
+  Future<void> _decrementQuantity() async {
+    setState(() {
+      quantity--;
+    });
+    if ((quantity + widget.product.quantity) > 0) {
+      var url = Uri.parse(
+          'http://localhost:3000/house/editBuyListItem/${widget.product.id}');
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = await prefs.getString('token');
+      token = token!.substring(1, token.length - 1);
+
+      // Log the request payload
+
+      var response = await http.put(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'quantity': quantity + widget.product.quantity,
+        }),
+      );
+
+      if (response.statusCode == 200 && response.body == "Item updated") {
+        print(response.body);
+      } else {
+        print('Failed to update item: ${response.statusCode}');
+      }
+    }
   }
 }
 
@@ -469,10 +563,8 @@ class _ProductItemState extends State<ProductItem> {
           Column(
             children: [
               ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    quantity++;
-                  });
+                onPressed: () async {
+                  await _incrementQuantity();
                 },
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(
@@ -496,12 +588,9 @@ class _ProductItemState extends State<ProductItem> {
                 ),
               ),
               ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    if (quantity > 0) {
-                      quantity--;
-                    }
-                  });
+                onPressed: () async {
+                  print(1);
+                  await _decrementQuantity();
                 },
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(
@@ -519,6 +608,98 @@ class _ProductItemState extends State<ProductItem> {
         ],
       ),
     );
+  }
+
+  Future<void> _incrementQuantity() async {
+    setState(() {
+      quantity++;
+    });
+
+    var url = Uri.parse(
+        'http://localhost:3000/house/editpantryitem/${widget.product.id}');
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = await prefs.getString('token');
+    token = token!.substring(1, token.length - 1);
+
+    var response = await http.put(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'quantity': quantity + widget.product.quantity,
+      }),
+    );
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+    if (response.statusCode == 200 && response.body == "Item updated") {
+      print(response.body);
+    } else {
+      print('Failed to update item: ${response.body}');
+    }
+  }
+
+  Future<void> _decrementQuantity() async {
+    setState(() {
+      quantity--;
+    });
+    if ((quantity + widget.product.quantity) > 0) {
+      var url = Uri.parse(
+          'http://localhost:3000/house/editpantryitem/${widget.product.id}');
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = await prefs.getString('token');
+      token = token!.substring(1, token.length - 1);
+
+      // Log the request payload
+
+      var response = await http.put(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'quantity': quantity + widget.product.quantity,
+        }),
+      );
+
+      if (response.statusCode == 200 && response.body == "Item updated") {
+        print(response.body);
+      } else {
+        print('Failed to update item: ${response.statusCode}');
+      }
+    } else {
+      var url = Uri.parse(
+          'http://localhost:3000/house/excludepantryitem/${widget.product.id}');
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = await prefs.getString('token');
+      token = token!.substring(1, token.length - 1);
+
+      var response = await http.delete(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print(response.body);
+      } else {
+        print(response.statusCode);
+      }
+
+      String? cleanedBase64String = widget.product.picUrl?.split(',').last;
+      cleanedBase64String = cleanedBase64String!
+          .replaceAll(RegExp(r'\s'), '')
+          .replaceAll('&#x2F;', '/')
+          .replaceAll('&#x3D;', '=')
+          .replaceAll('&#x2B;', '+');
+
+      addBuyListItem(widget.product.name, widget.product.brand,
+          widget.product.quantity, cleanedBase64String, widget.product.weight);
+    }
   }
 }
 
@@ -595,7 +776,7 @@ class _ShopList extends State<ShopList> {
                           .replaceAll('&#x3D;', '=')
                           .replaceAll('&#x2B;', '+');
                       final decodedBytes = base64Decode(cleanedBase64String);
-                      return ProductItem(
+                      return ProductItemShopList(
                         product: products[i],
                         decodedBytes: decodedBytes,
                       );
@@ -629,13 +810,16 @@ class _AddContainersState extends State<AddContainers> {
   final imageController = TextEditingController();
   final marcaController = TextEditingController();
   final nameController = TextEditingController();
-  final weightController = TextEditingController();
+  final quantityController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
+        shape: CircleBorder(),
         child: const Icon(
           Icons.add,
           color: Color.fromARGB(255, 0, 0, 0),
+          size: 40,
         ),
         onPressed: () async {
           await showDialog<void>(
@@ -662,50 +846,67 @@ class _AddContainersState extends State<AddContainers> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: <Widget>[
-                              Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: FormBuilderImagePicker(
-                                  name: 'photos',
-                                  decoration: const InputDecoration(
-                                      labelText: 'Pick Photos'),
-                                  maxImages: 1,
-                                  onChanged: (images) async {
-                                    if (images != null && images.isNotEmpty) {
-                                      XFile xfile = images.first;
-                                      if (kIsWeb) {
-                                        // For web
-                                        html.FileReader reader =
-                                            html.FileReader();
-                                        reader.readAsDataUrl(html.Blob(
-                                            [await xfile.readAsBytes()]));
-                                        reader.onLoadEnd.listen((event) {
-                                          base64Image = reader.result as String;
-                                        });
-                                      } else {
-                                        // For mobile
-                                        File imageFile = File(xfile.path);
-                                        List<int> imageBytes =
-                                            await imageFile.readAsBytes();
-                                        base64Image = base64Encode(imageBytes);
+                              Container(
+                                height: 80,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8),
+                                  child: FormBuilderImagePicker(
+                                    name: 'photos',
+                                    decoration: const InputDecoration(
+                                      labelText: 'Picture',
+                                      border: OutlineInputBorder(),
+                                      contentPadding: EdgeInsets.symmetric(
+                                          vertical: 10, horizontal: 10),
+                                    ),
+                                    maxImages: 1,
+                                    onChanged: (images) async {
+                                      if (images != null && images.isNotEmpty) {
+                                        XFile xfile = images.first;
+                                        if (kIsWeb) {
+                                          // For web
+                                          html.FileReader reader =
+                                              html.FileReader();
+                                          reader.readAsDataUrl(html.Blob(
+                                              [await xfile.readAsBytes()]));
+                                          reader.onLoadEnd.listen((event) {
+                                            base64Image =
+                                                reader.result as String;
+                                          });
+                                        } else {
+                                          // For mobile
+                                          File imageFile = File(xfile.path);
+                                          List<int> imageBytes =
+                                              await imageFile.readAsBytes();
+                                          base64Image =
+                                              base64Encode(imageBytes);
+                                        }
                                       }
-                                    }
-                                  },
+                                    },
+                                  ),
                                 ),
                               ),
                               Padding(
                                 padding: const EdgeInsets.all(8),
                                 child: TextFormField(
                                   controller: nameController,
-                                  decoration:
-                                      InputDecoration(labelText: 'Nome:'),
+                                  decoration: InputDecoration(
+                                    labelText: 'Product Name',
+                                    border: OutlineInputBorder(),
+                                    contentPadding: EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 10),
+                                  ),
                                 ),
                               ),
                               Padding(
                                 padding: const EdgeInsets.all(8),
                                 child: TextFormField(
                                   controller: marcaController,
-                                  decoration:
-                                      InputDecoration(labelText: 'Marca:'),
+                                  decoration: InputDecoration(
+                                    labelText: 'Product Brand',
+                                    border: OutlineInputBorder(),
+                                    contentPadding: EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 10),
+                                  ),
                                 ),
                               ),
                               Padding(
@@ -715,25 +916,29 @@ class _AddContainersState extends State<AddContainers> {
                                   inputFormatters: [
                                     FilteringTextInputFormatter.digitsOnly
                                   ],
-                                  controller: weightController,
-                                  decoration:
-                                      InputDecoration(labelText: 'Peso:'),
+                                  controller: quantityController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Weight',
+                                    border: OutlineInputBorder(),
+                                    contentPadding: EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 10),
+                                  ),
                                 ),
                               ),
                               Padding(
                                 padding: const EdgeInsets.all(8),
                                 child: ElevatedButton(
-                                  child: const Text('Submit'),
+                                  child: const Text('Save'),
                                   onPressed: () async {
                                     if (_formKey.currentState!.validate()) {
                                       _formKey.currentState!.save();
-                                      final num? weightNum =
-                                          num.tryParse(weightController.text);
+                                      final num? quantityNum =
+                                          num.tryParse(quantityController.text);
                                       final produto = Produto(
                                           base64Image!,
                                           nameController.text,
                                           marcaController.text,
-                                          weightNum!);
+                                          quantityNum!);
                                       if (tabIndex == 0) {
                                         produtosDespensa.add(produto);
                                         await addPantryItem(
@@ -747,14 +952,16 @@ class _AddContainersState extends State<AddContainers> {
                                         await addBuyListItem(
                                             produto.name,
                                             produto.brand,
-                                            produto.weight,
+                                            0,
                                             produto.picture,
-                                            0);
+                                            produto.weight);
                                       }
                                       widget.callback();
                                       Navigator.of(context).pop();
                                     }
                                   },
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.lightGreen),
                                 ),
                               )
                             ],
