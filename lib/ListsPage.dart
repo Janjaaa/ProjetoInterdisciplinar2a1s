@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 List<int>? imgForApi;
 int tabIndex = 0;
+List<Product> itemsCarro = [];
 
 Future addPantryItem(
     String name, String brand, num quantity, String picUrl, num weight) async {
@@ -73,10 +74,10 @@ class Product {
   final String id;
   final String name;
   final String brand;
-  final int quantity;
+  int quantity;
   final int weight;
   final int v;
-  final String? picUrl;
+  String? picUrl;
 
   Product({
     required this.id,
@@ -281,53 +282,57 @@ class _PantryState extends State<Pantry> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<List<Product>>(
-        future: fetchPantryItem(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.hasData) {
-            List<Product> products = snapshot.data!;
-            return Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: products.length,
-                    itemBuilder: (context, i) {
-                      String? cleanedBase64String =
-                          products[i].picUrl?.split(',').last;
-                      cleanedBase64String = cleanedBase64String!
-                          .replaceAll(RegExp(r'\s'), '')
-                          .replaceAll('&#x2F;', '/')
-                          .replaceAll('&#x3D;', '=')
-                          .replaceAll('&#x2B;', '+');
-                      final decodedBytes = base64Decode(cleanedBase64String);
-                      return ProductItem(
-                        product: products[i],
-                        decodedBytes: decodedBytes,
-                      );
-                    },
+        body: FutureBuilder<List<Product>>(
+          future: fetchPantryItem(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else if (snapshot.hasData) {
+              List<Product> products = snapshot.data!;
+              return Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: products.length,
+                      itemBuilder: (context, i) {
+                        String? cleanedBase64String =
+                            products[i].picUrl?.split(',').last;
+                        cleanedBase64String = cleanedBase64String!
+                            .replaceAll(RegExp(r'\s'), '')
+                            .replaceAll('&#x2F;', '/')
+                            .replaceAll('&#x3D;', '=')
+                            .replaceAll('&#x2B;', '+');
+                        final decodedBytes = base64Decode(cleanedBase64String);
+                        return ProductItem(
+                          product: products[i],
+                          decodedBytes: decodedBytes,
+                          callback: refresh,
+                        );
+                      },
+                    ),
                   ),
-                ),
-                AddContainers(q: q, callback: refresh)
-              ],
-            );
-          } else {
-            return Center(child: Text('No data'));
-          }
-        },
-      ),
-    );
+                ],
+              );
+            } else {
+              return Center(child: Text('No data'));
+            }
+          },
+        ),
+        floatingActionButton: AddContainers(q: q, callback: refresh));
   }
 }
 
 class ProductItemShopList extends StatefulWidget {
   final Product product;
   final Uint8List decodedBytes;
+  final VoidCallback callback;
 
-  ProductItemShopList({required this.product, required this.decodedBytes});
+  ProductItemShopList(
+      {required this.product,
+      required this.decodedBytes,
+      required this.callback});
 
   @override
   _ProductItemShopList createState() => _ProductItemShopList();
@@ -414,7 +419,6 @@ class _ProductItemShopList extends State<ProductItemShopList> {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  print(1);
                   await _decrementQuantity();
                 },
                 style: ElevatedButton.styleFrom(
@@ -437,7 +441,7 @@ class _ProductItemShopList extends State<ProductItemShopList> {
 
   Future<void> _incrementQuantity() async {
     setState(() {
-      quantity++;
+      widget.product.quantity++;
     });
 
     var url = Uri.parse(
@@ -453,13 +457,28 @@ class _ProductItemShopList extends State<ProductItemShopList> {
         'Content-Type': 'application/json',
       },
       body: jsonEncode({
-        'quantity': quantity + widget.product.quantity,
+        'quantity': widget.product.quantity,
       }),
     );
     print('Response status: ${response.statusCode}');
     print('Response body: ${response.body}');
     if (response.statusCode == 200 && response.body == "Item updated") {
       print(response.body);
+      String? produtoImg = widget.product.picUrl?.split(',').last;
+      produtoImg = produtoImg!
+          .replaceAll(RegExp(r'\s'), '')
+          .replaceAll('&#x2F;', '/')
+          .replaceAll('&#x3D;', '=')
+          .replaceAll('&#x2B;', '+');
+      print(widget.product.quantity);
+      if (widget.product.quantity == 1) {
+        widget.product.picUrl = produtoImg;
+        print(widget.product);
+        itemsCarro.add(widget.product);
+      } else if (widget.product.quantity > 1) {
+        updateProductQuantity(
+            itemsCarro, widget.product.id, widget.product.quantity);
+      }
     } else {
       print('Failed to update item: ${response.body}');
     }
@@ -467,33 +486,32 @@ class _ProductItemShopList extends State<ProductItemShopList> {
 
   Future<void> _decrementQuantity() async {
     setState(() {
-      quantity--;
+      widget.product.quantity--;
     });
-    if ((quantity + widget.product.quantity) > 0) {
-      var url = Uri.parse(
-          'http://localhost:3000/house/editBuyListItem/${widget.product.id}');
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token = await prefs.getString('token');
-      token = token!.substring(1, token.length - 1);
+    var url = Uri.parse(
+        'http://localhost:3000/house/editBuyListItem/${widget.product.id}');
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = await prefs.getString('token');
+    token = token!.substring(1, token.length - 1);
 
-      // Log the request payload
+    var response = await http.put(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'quantity': widget.product.quantity,
+      }),
+    );
 
-      var response = await http.put(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'quantity': quantity + widget.product.quantity,
-        }),
-      );
-
-      if (response.statusCode == 200 && response.body == "Item updated") {
-        print(response.body);
-      } else {
-        print('Failed to update item: ${response.statusCode}');
+    if (response.statusCode == 200 && response.body == "Item updated") {
+      print(response.body);
+      if (widget.product.quantity == 0) {
+        removeProductById(itemsCarro, widget.product.id);
       }
+    } else {
+      print('Failed to update item: ${response.statusCode}');
     }
   }
 }
@@ -501,8 +519,12 @@ class _ProductItemShopList extends State<ProductItemShopList> {
 class ProductItem extends StatefulWidget {
   final Product product;
   final Uint8List decodedBytes;
+  final VoidCallback callback;
 
-  ProductItem({required this.product, required this.decodedBytes});
+  ProductItem(
+      {required this.product,
+      required this.decodedBytes,
+      required this.callback});
 
   @override
   _ProductItemState createState() => _ProductItemState();
@@ -651,8 +673,6 @@ class _ProductItemState extends State<ProductItem> {
       String? token = await prefs.getString('token');
       token = token!.substring(1, token.length - 1);
 
-      // Log the request payload
-
       var response = await http.put(
         url,
         headers: {
@@ -697,8 +717,9 @@ class _ProductItemState extends State<ProductItem> {
           .replaceAll('&#x3D;', '=')
           .replaceAll('&#x2B;', '+');
 
-      addBuyListItem(widget.product.name, widget.product.brand,
-          widget.product.quantity, cleanedBase64String, widget.product.weight);
+      addBuyListItem(widget.product.name, widget.product.brand, 0,
+          cleanedBase64String, widget.product.weight);
+      widget.callback();
     }
   }
 }
@@ -714,7 +735,6 @@ class _ShopList extends State<ShopList> {
   final weightController = TextEditingController();
 
   final ValueNotifier<int> q = ValueNotifier<int>(0);
-
   late Future<List<Product>> pantryFuture;
 
   @override
@@ -753,45 +773,120 @@ class _ShopList extends State<ShopList> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<List<Product>>(
-        future: fetchBuyListItem(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.hasData) {
-            List<Product> products = snapshot.data!;
-            return Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: products.length,
-                    itemBuilder: (context, i) {
-                      String? cleanedBase64String =
-                          products[i].picUrl?.split(',').last;
-                      cleanedBase64String = cleanedBase64String!
-                          .replaceAll(RegExp(r'\s'), '')
-                          .replaceAll('&#x2F;', '/')
-                          .replaceAll('&#x3D;', '=')
-                          .replaceAll('&#x2B;', '+');
-                      final decodedBytes = base64Decode(cleanedBase64String);
-                      return ProductItemShopList(
-                        product: products[i],
-                        decodedBytes: decodedBytes,
-                      );
-                    },
+        body: FutureBuilder<List<Product>>(
+          future: fetchBuyListItem(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else if (snapshot.hasData) {
+              List<Product> products = snapshot.data!;
+              return Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: products.length,
+                      itemBuilder: (context, i) {
+                        String? cleanedBase64String =
+                            products[i].picUrl?.split(',').last;
+                        cleanedBase64String = cleanedBase64String!
+                            .replaceAll(RegExp(r'\s'), '')
+                            .replaceAll('&#x2F;', '/')
+                            .replaceAll('&#x3D;', '=')
+                            .replaceAll('&#x2B;', '+');
+                        final decodedBytes = base64Decode(cleanedBase64String);
+                        return ProductItemShopList(
+                          product: products[i],
+                          decodedBytes: decodedBytes,
+                          callback: refresh,
+                        );
+                      },
+                    ),
                   ),
-                ),
-                AddContainers(q: q, callback: refresh)
-              ],
-            );
-          } else {
-            return Center(child: Text('No data'));
-          }
-        },
-      ),
-    );
+                ],
+              );
+            } else {
+              return Center(child: Text('No data'));
+            }
+          },
+        ),
+        floatingActionButton: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            Align(
+              alignment: Alignment.bottomRight,
+              child: AddContainers(q: q, callback: refresh),
+            ),
+            Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 0, left: 40),
+                  child: FloatingActionButton(
+                    onPressed: () async {
+                      print(itemsCarro.toString());
+                      for (var item in itemsCarro) {
+                        String? cleanedBase64String =
+                            item.picUrl?.split(',').last;
+                        cleanedBase64String = cleanedBase64String!
+                            .replaceAll(RegExp(r'\s'), '')
+                            .replaceAll('&#x2F;', '/')
+                            .replaceAll('&#x3D;', '=')
+                            .replaceAll('&#x2B;', '+');
+                        var url = Uri.parse(
+                            'http://localhost:3000/house/createpantryitem');
+                        final SharedPreferences prefs =
+                            await SharedPreferences.getInstance();
+                        String? token = await prefs.getString('token');
+                        token = token!.substring(1, token.length - 1);
+                        var response = await http.post(
+                          url,
+                          headers: {
+                            'Authorization': 'Bearer $token',
+                            'Content-Type': 'application/json',
+                          },
+                          body: jsonEncode({
+                            'name': item.name,
+                            'brand': item.brand,
+                            'quantity': item.quantity,
+                            'picUrl': cleanedBase64String,
+                            'weight': item.weight,
+                          }),
+                        );
+
+                        if (response.statusCode == 200) {
+                          print(response.statusCode);
+                        } else {
+                          print('failed to add item ${response.statusCode}');
+                        }
+
+                        url = Uri.parse(
+                            'http://localhost:3000/house/excludeBuyListItem/${item.id}');
+
+                        response = await http.delete(
+                          url,
+                          headers: {
+                            'Authorization': 'Bearer $token',
+                            'Content-Type': 'application/json',
+                          },
+                        );
+
+                        if (response.statusCode == 200) {
+                          print(response.body);
+                          itemsCarro = [];
+                          setState(() {});
+                        } else {
+                          print(response.statusCode);
+                        }
+                      }
+                    },
+                    backgroundColor: Colors.lightGreenAccent,
+                    child:
+                        Icon(Icons.shopping_cart_checkout, color: Colors.black),
+                  ),
+                ))
+          ],
+        ));
   }
 }
 
@@ -944,9 +1039,9 @@ class _AddContainersState extends State<AddContainers> {
                                         await addPantryItem(
                                             produto.name,
                                             produto.brand,
-                                            produto.weight,
+                                            1,
                                             produto.picture,
-                                            1);
+                                            produto.weight);
                                       } else if (tabIndex == 1) {
                                         produtosCompra.add(produto);
                                         await addBuyListItem(
@@ -972,4 +1067,17 @@ class _AddContainersState extends State<AddContainers> {
                   ));
         });
   }
+}
+
+void updateProductQuantity(List<Product> products, String id, int newQuantity) {
+  for (var product in products) {
+    if (product.id == id) {
+      product.quantity = newQuantity;
+      break;
+    }
+  }
+}
+
+void removeProductById(List<Product> products, String id) {
+  products.removeWhere((product) => product.id == id);
 }
