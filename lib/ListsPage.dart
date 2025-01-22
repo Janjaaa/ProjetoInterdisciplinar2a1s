@@ -264,8 +264,6 @@ class _PantryState extends State<Pantry> {
       'Content-Type': 'application/json',
     });
     if (response.statusCode == 200) {
-      // If the server did return a 200 OK response,
-      // then parse the JSON.
       List<dynamic> jsonList = jsonDecode(response.body) as List<dynamic>;
       List<Product> products = jsonList
           .map((json) => Product.fromJson(json as Map<String, dynamic>))
@@ -273,8 +271,6 @@ class _PantryState extends State<Pantry> {
       products.sort((a, b) => a.name.compareTo(b.name));
       return products;
     } else {
-      // If the server did not return a 200 OK response,
-      // then throw an exception.
       throw Exception('Failed to load pantry items');
     }
   }
@@ -485,33 +481,35 @@ class _ProductItemShopList extends State<ProductItemShopList> {
   }
 
   Future<void> _decrementQuantity() async {
-    setState(() {
-      widget.product.quantity--;
-    });
-    var url = Uri.parse(
-        'http://localhost:3000/house/editBuyListItem/${widget.product.id}');
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = await prefs.getString('token');
-    token = token!.substring(1, token.length - 1);
+    if (widget.product.quantity > 0) {
+      setState(() {
+        widget.product.quantity--;
+      });
+      var url = Uri.parse(
+          'http://localhost:3000/house/editBuyListItem/${widget.product.id}');
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = await prefs.getString('token');
+      token = token!.substring(1, token.length - 1);
 
-    var response = await http.put(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'quantity': widget.product.quantity,
-      }),
-    );
+      var response = await http.put(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'quantity': widget.product.quantity,
+        }),
+      );
 
-    if (response.statusCode == 200 && response.body == "Item updated") {
-      print(response.body);
-      if (widget.product.quantity == 0) {
-        removeProductById(itemsCarro, widget.product.id);
+      if (response.statusCode == 200 && response.body == "Item updated") {
+        print(response.body);
+        if (widget.product.quantity == 0) {
+          removeProductById(itemsCarro, widget.product.id);
+        }
+      } else {
+        print('Failed to update item: ${response.statusCode}');
       }
-    } else {
-      print('Failed to update item: ${response.statusCode}');
     }
   }
 }
