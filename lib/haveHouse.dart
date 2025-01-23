@@ -69,6 +69,9 @@ class _HousePageState extends State<HousePage> {
                     );
 
                     if (response.statusCode == 200) {
+                      await prefs.setString(
+                          'houseCode', _houseCodeController.text);
+                      print(_houseCodeController.text);
                       context.go('/ListsPage.dart');
                       setState(() {
                         _errorMessage = null;

@@ -12,6 +12,48 @@ List<int>? imgForApi;
 int tabIndex = 0;
 List<Product> itemsCarro = [];
 
+String? emailValidator(String? value) {
+  if (value == null || value.isEmpty) {
+    return 'Please enter some text';
+  }
+  final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+  if (!emailRegex.hasMatch(value)) {
+    return 'Please enter a valid email address';
+  }
+  return null;
+}
+
+Map<String, dynamic> parseJwt(String token) {
+  final parts = token.split('.');
+  if (parts.length != 3) {
+    throw Exception('Invalid token');
+  }
+
+  final payload = _decodeBase64(parts[1]);
+  final payloadMap = json.decode(payload);
+  if (payloadMap is! Map<String, dynamic>) {
+    throw Exception('Invalid payload');
+  }
+  return payloadMap;
+}
+
+String _decodeBase64(String str) {
+  String output = str.replaceAll('-', '+').replaceAll('_', '/');
+  switch (output.length % 4) {
+    case 0:
+      break;
+    case 2:
+      output += '==';
+      break;
+    case 3:
+      output += '=';
+      break;
+    default:
+      throw Exception('Illegal base64url string!');
+  }
+  return utf8.decode(base64Url.decode(output));
+}
+
 Future addPantryItem(
     String name, String brand, num quantity, String picUrl, num weight) async {
   var url = Uri.parse('http://localhost:3000/house/createpantryitem');
@@ -142,6 +184,15 @@ class Listspage extends StatefulWidget {
 
 class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
   late TabController _controller;
+  String userEmail = "";
+  String userName = "";
+  String userId = "";
+  var user;
+  var house;
+  String houseCode = "";
+  List<String> houseUsers = [];
+
+  final _signupformKey = GlobalKey<FormState>();
 
   List<Widget> listTabs = [
     Tab(icon: Icon(Icons.shelves)),
@@ -152,12 +203,117 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     _controller = TabController(length: listTabs.length, vsync: this);
-
     _controller.addListener(() {
       setState(() {
         tabIndex = _controller.index;
       });
     });
+  }
+
+  void getHouseInfo() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = await prefs.getString('token');
+    token = token!.substring(1, token.length - 1);
+    Map<String, dynamic> decodedToken = parseJwt(token);
+    var tempHouseCode = (await prefs.getString('houseCode'))!;
+    List<String> tempHouseUsers = [];
+    var url = Uri.parse('http://localhost:3000/users/?homeId=$tempHouseCode');
+    var response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    if (response.statusCode == 200) {
+      var usersHouseRes = json.decode(response.body);
+      for (var user in usersHouseRes) {
+        tempHouseUsers.add(user['name']);
+      }
+    } else {
+      print(response.statusCode);
+    }
+
+    print(decodedToken);
+    setState(() {
+      houseCode = tempHouseCode;
+      houseUsers = tempHouseUsers;
+    });
+  }
+
+  void _showProfileModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('User Profile'),
+          content: Form(
+              key: _signupformKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    initialValue: userName,
+                    decoration: InputDecoration(labelText: 'Name'),
+                    readOnly: true,
+                  ),
+                  TextFormField(
+                    initialValue: userEmail,
+                    decoration: InputDecoration(labelText: 'Email'),
+                    validator: emailValidator,
+                    onChanged: (value) {
+                      setState(() {
+                        userEmail = value;
+                      });
+                    },
+                  ),
+                  TextFormField(
+                    initialValue: houseCode,
+                    decoration: InputDecoration(labelText: 'House'),
+                    readOnly: true,
+                  ),
+                ],
+              )),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (_signupformKey.currentState!.validate()) {
+                  final SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
+                  String? token = await prefs.getString('token');
+                  token = token!.substring(1, token.length - 1);
+                  var url = Uri.parse(
+                      'http://localhost:3000/users/updateuser/$userId');
+                  var response = await http.put(
+                    url,
+                    headers: {
+                      'Authorization': 'Bearer $token',
+                      'Content-Type': 'application/json',
+                    },
+                    body: jsonEncode({'email': userEmail}),
+                  );
+
+                  if (response.statusCode == 200) {
+                    print('Email updated successfully');
+                  } else {
+                    print('Failed to update email: ${response.statusCode}');
+                  }
+
+                  Navigator.of(context).pop();
+                } else {}
+              },
+              child: Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -177,15 +333,11 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                   padding: EdgeInsets.symmetric(horizontal: 10),
                   child: Row(
                     children: [
-                      IconButton(
-                        icon: Icon(Icons.menu),
-                        onPressed: () {},
-                      ),
                       SizedBox(width: 10),
                       Expanded(
                         child: TextField(
                           decoration: InputDecoration(
-                            hintText: 'Search itens',
+                            hintText: 'Search items',
                             border: InputBorder.none,
                           ),
                         ),
@@ -200,8 +352,118 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
               ),
               IconButton(
                 icon: Icon(Icons.account_circle),
-                onPressed: () {},
+                onPressed: () async {
+                  print(houseCode);
+                  print(houseUsers);
+                  final SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
+                  String? token = await prefs.getString('token');
+                  token = token!.substring(1, token.length - 1);
+                  Map<String, dynamic> decodedToken = parseJwt(token);
+                  userName = decodedToken['data']['name'];
+                  ;
+                  houseCode = decodedToken['data']['homeId'];
+                  ;
+                  userId = decodedToken['data']['userId'];
+                  var url = Uri.parse('http://localhost:3000/users/$userId');
+                  var response = await http.get(
+                    url,
+                    headers: {
+                      'Authorization': 'Bearer $token',
+                      'Content-Type': 'application/json',
+                    },
+                  );
+
+                  if (response.statusCode == 200) {
+                    var userResponse = json.decode(response.body);
+                    user = userResponse[0];
+                  } else {
+                    print(response.statusCode);
+                  }
+
+                  userEmail = user['email'];
+                  _showProfileModal(context);
+                },
               ),
+            ],
+          ),
+        ),
+        onDrawerChanged: (isOpened) {
+          if (isOpened) {
+            getHouseInfo();
+          }
+        },
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: <Widget>[
+              DrawerHeader(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      houseCode,
+                      style:
+                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    Builder(
+                      builder: (context) => IconButton(
+                        icon: Icon(Icons.copy),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: 'Menu Title'));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text('Title copied to clipboard')),
+                          );
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              for (var i = 0; i < houseUsers.length; i++)
+                ListTile(
+                  title: Text(houseUsers[i]),
+                  trailing: IconButton(
+                    icon: Icon(Icons.delete),
+                    onPressed: () async {
+                      var url = Uri.parse(
+                          'http://localhost:3000/users/?homeId=$houseCode');
+                      final SharedPreferences prefs =
+                          await SharedPreferences.getInstance();
+                      String? token = await prefs.getString('token');
+                      token = token!.substring(1, token.length - 1);
+
+                      var response = await http.get(url, headers: {
+                        'Authorization': 'Bearer $token',
+                        'Content-Type': 'application/json',
+                      });
+                      if (response.statusCode == 200) {
+                        var houseDecoded = json.decode(response.body);
+                        var url = Uri.parse(
+                            'http://localhost:3000/users/deleteuseradmin/${houseDecoded[i]['_id']}');
+                        final SharedPreferences prefs =
+                            await SharedPreferences.getInstance();
+                        String? token = await prefs.getString('token');
+                        token = token!.substring(1, token.length - 1);
+
+                        response = await http.put(url, headers: {
+                          'Authorization': 'Bearer $token',
+                          'Content-Type': 'application/json',
+                        });
+                        if (response.statusCode == 200) {
+                          setState(() {});
+                        } else {
+                          print(response.statusCode);
+                        }
+                      } else {
+                        print(response.statusCode);
+                      }
+                      setState(() {});
+                    },
+                  ),
+                ),
             ],
           ),
         ),
@@ -822,7 +1084,6 @@ class _ShopList extends State<ShopList> {
                   padding: const EdgeInsets.only(bottom: 0, left: 40),
                   child: FloatingActionButton(
                     onPressed: () async {
-                      print(itemsCarro.toString());
                       for (var item in itemsCarro) {
                         String? cleanedBase64String =
                             item.picUrl?.split(',').last;

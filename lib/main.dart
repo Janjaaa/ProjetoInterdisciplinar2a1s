@@ -55,7 +55,6 @@ Future registerUser(String name, String email, String password) async {
 
   if (response.statusCode == 200) {
     print('User registered successfully');
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
     return response.statusCode;
   } else {
     print('Failed to register user: ${response.statusCode}');
@@ -81,6 +80,33 @@ Future loginUser(String email, String password) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', response.body);
     await prefs.setString('email', email);
+
+    String? token = await prefs.getString('token');
+    token = token!.substring(1, token.length - 1);
+
+    Map<String, dynamic> decodedToken = parseJwt(token);
+    print(decodedToken);
+    print(decodedToken['data']['name']);
+    var userHouse = decodedToken['data']['homeId'];
+
+    var url = Uri.parse('http://localhost:3000/house/gethouse/$userHouse');
+    response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      var houseResponse = json.decode(response.body);
+      var house = houseResponse[0];
+
+      await prefs.setString('houseCode', house['houseCode']);
+    } else {
+      print(response.statusCode);
+      return "no house";
+    }
     return response.statusCode;
   } else {
     print('Failed to login user: ${response.statusCode}');
@@ -226,6 +252,8 @@ class LoginFormState extends State<LoginForm> {
                               usernameController.text, passwordController.text);
                           if (response == 200) {
                             context.go('/ListsPage.dart');
+                          } else if (response == "no house") {
+                            context.go('/haveHouse.dart');
                           } else {
                             print("credentials incorrect");
                           }
@@ -282,6 +310,7 @@ class SignupFormState extends State<SignupForm> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final apiUrl = "localhost:3000/register";
+  String? emailError;
 
   @override
   void dispose() {
@@ -299,6 +328,9 @@ class SignupFormState extends State<SignupForm> {
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
     if (!emailRegex.hasMatch(value)) {
       return 'Please enter a valid email address';
+    }
+    if (emailError != null) {
+      return emailError;
     }
     return null;
   }
@@ -391,20 +423,11 @@ class SignupFormState extends State<SignupForm> {
                                 emailController.text, passwordController.text);
                             context.go('/haveHouse.dart');
                           } else if (response == 406) {
-                            print("Email already in use");
+                            setState(() {
+                              emailError = 'Email already in use';
+                            });
+                            _signupformKey.currentState!.validate();
                           }
-                          showDialog(
-                            context: context,
-                            builder: (context) {
-                              return AlertDialog(
-                                content: Text(
-                                    nameController.text + emailController.text),
-                              );
-                            },
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Processing Data')),
-                          );
                         }
                       },
                       style: ElevatedButton.styleFrom(
