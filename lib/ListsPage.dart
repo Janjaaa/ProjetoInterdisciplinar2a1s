@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 List<int>? imgForApi;
 int tabIndex = 0;
 List<Product> itemsCarro = [];
+String searchedItem = "";
 
 String? emailValidator(String? value) {
   if (value == null || value.isEmpty) {
@@ -78,7 +79,6 @@ Future addPantryItem(
   if (response.statusCode == 200) {
     return response.statusCode;
   } else {
-    print('failed to add item ${response.statusCode}');
     return response.statusCode;
   }
 }
@@ -184,6 +184,7 @@ class Listspage extends StatefulWidget {
 
 class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
   late TabController _controller;
+  final TextEditingController _searchController = TextEditingController();
   String userEmail = "";
   String userName = "";
   String userId = "";
@@ -191,7 +192,7 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
   var house;
   String houseCode = "";
   List<String> houseUsers = [];
-
+  bool isHouseOwner = false;
   final _signupformKey = GlobalKey<FormState>();
 
   List<Widget> listTabs = [
@@ -216,7 +217,11 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
     token = token!.substring(1, token.length - 1);
     Map<String, dynamic> decodedToken = parseJwt(token);
     var tempHouseCode = (await prefs.getString('houseCode'))!;
+    userId = decodedToken['data']['userId'];
+
     List<String> tempHouseUsers = [];
+    bool tempIsHouseOwner = false;
+
     var url = Uri.parse('http://localhost:3000/users/?homeId=$tempHouseCode');
     var response = await http.get(
       url,
@@ -233,84 +238,141 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
     } else {
       print(response.statusCode);
     }
-
-    print(decodedToken);
+    url = Uri.parse('http://localhost:3000/house/gethouse/$tempHouseCode');
+    response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    if (response.statusCode == 200) {
+      var house = json.decode(response.body);
+      if (userId == house[0]['owner']) {
+        tempIsHouseOwner = true;
+      }
+    } else {
+      print(response.statusCode);
+    }
     setState(() {
       houseCode = tempHouseCode;
       houseUsers = tempHouseUsers;
+      isHouseOwner = tempIsHouseOwner;
     });
   }
 
   void _showProfileModal(BuildContext context) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('User Profile'),
-          content: Form(
-              key: _signupformKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    initialValue: userName,
-                    decoration: InputDecoration(labelText: 'Name'),
-                    readOnly: true,
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'User Profile',
+                  style: TextStyle(fontSize: 28),
+                ),
+                Form(
+                  key: _signupformKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        initialValue: userName,
+                        decoration: InputDecoration(
+                          labelText: 'Name',
+                          labelStyle: TextStyle(fontSize: 22),
+                        ),
+                        readOnly: true,
+                        style: TextStyle(fontSize: 22),
+                      ),
+                      TextFormField(
+                        initialValue: userEmail,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          labelStyle: TextStyle(fontSize: 22),
+                        ),
+                        validator: emailValidator,
+                        onChanged: (value) {
+                          setState(() {
+                            userEmail = value;
+                          });
+                        },
+                        style: TextStyle(fontSize: 22),
+                      ),
+                      TextFormField(
+                        initialValue: houseCode,
+                        decoration: InputDecoration(
+                          labelText: 'House',
+                          labelStyle: TextStyle(fontSize: 22),
+                        ),
+                        readOnly: true,
+                        style: TextStyle(fontSize: 22),
+                      ),
+                    ],
                   ),
-                  TextFormField(
-                    initialValue: userEmail,
-                    decoration: InputDecoration(labelText: 'Email'),
-                    validator: emailValidator,
-                    onChanged: (value) {
-                      setState(() {
-                        userEmail = value;
-                      });
-                    },
-                  ),
-                  TextFormField(
-                    initialValue: houseCode,
-                    decoration: InputDecoration(labelText: 'House'),
-                    readOnly: true,
-                  ),
-                ],
-              )),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (_signupformKey.currentState!.validate()) {
-                  final SharedPreferences prefs =
-                      await SharedPreferences.getInstance();
-                  String? token = await prefs.getString('token');
-                  token = token!.substring(1, token.length - 1);
-                  var url = Uri.parse(
-                      'http://localhost:3000/users/updateuser/$userId');
-                  var response = await http.put(
-                    url,
-                    headers: {
-                      'Authorization': 'Bearer $token',
-                      'Content-Type': 'application/json',
-                    },
-                    body: jsonEncode({'email': userEmail}),
-                  );
+                ),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(fontSize: 22),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (_signupformKey.currentState!.validate()) {
+                          final SharedPreferences prefs =
+                              await SharedPreferences.getInstance();
+                          String? token = await prefs.getString('token');
+                          token = token!.substring(1, token.length - 1);
+                          var url = Uri.parse(
+                              'http://localhost:3000/users/updateuser/$userId');
+                          var response = await http.put(
+                            url,
+                            headers: {
+                              'Authorization': 'Bearer $token',
+                              'Content-Type': 'application/json',
+                            },
+                            body: jsonEncode({'email': userEmail}),
+                          );
 
-                  if (response.statusCode == 200) {
-                    print('Email updated successfully');
-                  } else {
-                    print('Failed to update email: ${response.statusCode}');
-                  }
+                          if (response.statusCode == 200) {
+                            print('Email updated successfully');
+                          } else {
+                            print(
+                                'Failed to update email: ${response.statusCode}');
+                          }
 
-                  Navigator.of(context).pop();
-                } else {}
-              },
-              child: Text('Submit'),
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.lightGreen,
+                      ),
+                      child: Text(
+                        'Submit',
+                        style: TextStyle(fontSize: 22, color: Colors.black),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );
@@ -336,6 +398,13 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                       SizedBox(width: 10),
                       Expanded(
                         child: TextField(
+                          onChanged: (value) {
+                            searchedItem = _searchController.text;
+                            if (searchedItem == "") {
+                              setState(() {});
+                            }
+                          },
+                          controller: _searchController,
                           decoration: InputDecoration(
                             hintText: 'Search items',
                             border: InputBorder.none,
@@ -344,7 +413,33 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                       ),
                       IconButton(
                         icon: Icon(Icons.search),
-                        onPressed: () {},
+                        onPressed: () async {
+                          final SharedPreferences prefs =
+                              await SharedPreferences.getInstance();
+                          String? token = await prefs.getString('token');
+                          token = token!.substring(1, token.length - 1);
+                          var url = Uri.parse(
+                              'http://localhost:3000/house/searchitens/${_searchController.text}');
+                          var response = await http.get(
+                            url,
+                            headers: {
+                              'Authorization': 'Bearer $token',
+                              'Content-Type': 'application/json',
+                            },
+                          );
+
+                          if (response.statusCode == 200) {
+                            var searchResponse = json.decode(response.body);
+                            setState(() {
+                              searchedItem = searchResponse[0]['_id'];
+                            });
+                          } else {
+                            setState(() {
+                              searchedItem = "";
+                            });
+                            print(response.statusCode);
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -353,8 +448,6 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
               IconButton(
                 icon: Icon(Icons.account_circle),
                 onPressed: () async {
-                  print(houseCode);
-                  print(houseUsers);
                   final SharedPreferences prefs =
                       await SharedPreferences.getInstance();
                   String? token = await prefs.getString('token');
@@ -425,44 +518,46 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
               for (var i = 0; i < houseUsers.length; i++)
                 ListTile(
                   title: Text(houseUsers[i]),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () async {
-                      var url = Uri.parse(
-                          'http://localhost:3000/users/?homeId=$houseCode');
-                      final SharedPreferences prefs =
-                          await SharedPreferences.getInstance();
-                      String? token = await prefs.getString('token');
-                      token = token!.substring(1, token.length - 1);
+                  trailing: isHouseOwner && i != 0
+                      ? IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () async {
+                            var url = Uri.parse(
+                                'http://localhost:3000/users/?homeId=$houseCode');
+                            final SharedPreferences prefs =
+                                await SharedPreferences.getInstance();
+                            String? token = await prefs.getString('token');
+                            token = token!.substring(1, token.length - 1);
 
-                      var response = await http.get(url, headers: {
-                        'Authorization': 'Bearer $token',
-                        'Content-Type': 'application/json',
-                      });
-                      if (response.statusCode == 200) {
-                        var houseDecoded = json.decode(response.body);
-                        var url = Uri.parse(
-                            'http://localhost:3000/users/deleteuseradmin/${houseDecoded[i]['_id']}');
-                        final SharedPreferences prefs =
-                            await SharedPreferences.getInstance();
-                        String? token = await prefs.getString('token');
-                        token = token!.substring(1, token.length - 1);
+                            var response = await http.get(url, headers: {
+                              'Authorization': 'Bearer $token',
+                              'Content-Type': 'application/json',
+                            });
+                            if (response.statusCode == 200) {
+                              var houseDecoded = json.decode(response.body);
+                              var url = Uri.parse(
+                                  'http://localhost:3000/users/deleteuseradmin/${houseDecoded[i]['_id']}');
+                              final SharedPreferences prefs =
+                                  await SharedPreferences.getInstance();
+                              String? token = await prefs.getString('token');
+                              token = token!.substring(1, token.length - 1);
 
-                        response = await http.put(url, headers: {
-                          'Authorization': 'Bearer $token',
-                          'Content-Type': 'application/json',
-                        });
-                        if (response.statusCode == 200) {
-                          setState(() {});
-                        } else {
-                          print(response.statusCode);
-                        }
-                      } else {
-                        print(response.statusCode);
-                      }
-                      setState(() {});
-                    },
-                  ),
+                              response = await http.put(url, headers: {
+                                'Authorization': 'Bearer $token',
+                                'Content-Type': 'application/json',
+                              });
+                              if (response.statusCode == 200) {
+                                setState(() {});
+                              } else {
+                                print(response.statusCode);
+                              }
+                            } else {
+                              print(response.statusCode);
+                            }
+                            setState(() {});
+                          },
+                        )
+                      : null,
                 ),
             ],
           ),
@@ -718,20 +813,15 @@ class _ProductItemShopList extends State<ProductItemShopList> {
         'quantity': widget.product.quantity,
       }),
     );
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
     if (response.statusCode == 200 && response.body == "Item updated") {
-      print(response.body);
       String? produtoImg = widget.product.picUrl?.split(',').last;
       produtoImg = produtoImg!
           .replaceAll(RegExp(r'\s'), '')
           .replaceAll('&#x2F;', '/')
           .replaceAll('&#x3D;', '=')
           .replaceAll('&#x2B;', '+');
-      print(widget.product.quantity);
       if (widget.product.quantity == 1) {
         widget.product.picUrl = produtoImg;
-        print(widget.product);
         itemsCarro.add(widget.product);
       } else if (widget.product.quantity > 1) {
         updateProductQuantity(
@@ -765,7 +855,6 @@ class _ProductItemShopList extends State<ProductItemShopList> {
       );
 
       if (response.statusCode == 200 && response.body == "Item updated") {
-        print(response.body);
         if (widget.product.quantity == 0) {
           removeProductById(itemsCarro, widget.product.id);
         }
@@ -871,7 +960,6 @@ class _ProductItemState extends State<ProductItem> {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  print(1);
                   await _decrementQuantity();
                 },
                 style: ElevatedButton.styleFrom(
@@ -913,8 +1001,6 @@ class _ProductItemState extends State<ProductItem> {
         'quantity': quantity + widget.product.quantity,
       }),
     );
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
     if (response.statusCode == 200 && response.body == "Item updated") {
       print(response.body);
     } else {
@@ -1025,7 +1111,6 @@ class _ShopList extends State<ShopList> {
       products.sort((a, b) => a.name.compareTo(b.name));
       return products;
     } else {
-      print('Failed to load pantry items');
       throw Exception('Failed to load pantry items');
     }
   }
@@ -1042,25 +1127,37 @@ class _ShopList extends State<ShopList> {
               return Center(child: Text('Error: ${snapshot.error}'));
             } else if (snapshot.hasData) {
               List<Product> products = snapshot.data!;
+
+              List<Product> filteredProducts = searchedItem.isEmpty
+                  ? products
+                  : products
+                      .where((product) => product.id == searchedItem)
+                      .toList();
+
               return Column(
                 children: [
                   Expanded(
                     child: ListView.builder(
-                      itemCount: products.length,
+                      itemCount: filteredProducts.length,
                       itemBuilder: (context, i) {
                         String? cleanedBase64String =
-                            products[i].picUrl?.split(',').last;
+                            filteredProducts[i].picUrl?.split(',').last;
                         cleanedBase64String = cleanedBase64String!
                             .replaceAll(RegExp(r'\s'), '')
                             .replaceAll('&#x2F;', '/')
                             .replaceAll('&#x3D;', '=')
                             .replaceAll('&#x2B;', '+');
                         final decodedBytes = base64Decode(cleanedBase64String);
-                        return ProductItemShopList(
-                          product: products[i],
+                        final productItem = ProductItemShopList(
+                          product: filteredProducts[i],
                           decodedBytes: decodedBytes,
                           callback: refresh,
                         );
+                        if (searchedItem.isNotEmpty) {
+                          filteredProducts = products;
+                        }
+
+                        return productItem;
                       },
                     ),
                   ),
@@ -1114,7 +1211,6 @@ class _ShopList extends State<ShopList> {
                         );
 
                         if (response.statusCode == 200) {
-                          print(response.statusCode);
                         } else {
                           print('failed to add item ${response.statusCode}');
                         }
@@ -1131,7 +1227,6 @@ class _ShopList extends State<ShopList> {
                         );
 
                         if (response.statusCode == 200) {
-                          print(response.body);
                           itemsCarro = [];
                           setState(() {});
                         } else {
@@ -1176,154 +1271,164 @@ class _AddContainersState extends State<AddContainers> {
           size: 40,
         ),
         onPressed: () async {
-          await showDialog<void>(
-              context: context,
-              builder: (context) => AlertDialog(
-                    content: Stack(
-                      clipBehavior: Clip.none,
-                      children: <Widget>[
-                        Positioned(
-                          right: -40,
-                          top: -40,
-                          child: InkResponse(
-                            onTap: () {
-                              Navigator.of(context).pop();
-                            },
-                            child: const CircleAvatar(
-                              backgroundColor: Color.fromARGB(255, 255, 0, 0),
-                              child: Icon(Icons.close),
+          await showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            builder: (context) => Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Container(
+                padding: EdgeInsets.all(16),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: <Widget>[
+                    Positioned(
+                      right: -40,
+                      top: -40,
+                      child: InkResponse(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ),
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Container(
+                            height: 80,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: FormBuilderImagePicker(
+                                name: 'photos',
+                                decoration: const InputDecoration(
+                                  labelText: 'Picture',
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                      vertical: 10, horizontal: 10),
+                                ),
+                                maxImages: 1,
+                                onChanged: (images) async {
+                                  if (images != null && images.isNotEmpty) {
+                                    XFile xfile = images.first;
+                                    if (kIsWeb) {
+                                      // For web
+                                      html.FileReader reader =
+                                          html.FileReader();
+                                      reader.readAsDataUrl(html.Blob(
+                                          [await xfile.readAsBytes()]));
+                                      reader.onLoadEnd.listen((event) {
+                                        base64Image = reader.result as String;
+                                      });
+                                    } else {
+                                      // For mobile
+                                      File imageFile = File(xfile.path);
+                                      List<int> imageBytes =
+                                          await imageFile.readAsBytes();
+                                      base64Image = base64Encode(imageBytes);
+                                    }
+                                  }
+                                },
+                              ),
                             ),
                           ),
-                        ),
-                        Form(
-                          key: _formKey,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Container(
-                                height: 80,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8),
-                                  child: FormBuilderImagePicker(
-                                    name: 'photos',
-                                    decoration: const InputDecoration(
-                                      labelText: 'Picture',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(
-                                          vertical: 10, horizontal: 10),
-                                    ),
-                                    maxImages: 1,
-                                    onChanged: (images) async {
-                                      if (images != null && images.isNotEmpty) {
-                                        XFile xfile = images.first;
-                                        if (kIsWeb) {
-                                          // For web
-                                          html.FileReader reader =
-                                              html.FileReader();
-                                          reader.readAsDataUrl(html.Blob(
-                                              [await xfile.readAsBytes()]));
-                                          reader.onLoadEnd.listen((event) {
-                                            base64Image =
-                                                reader.result as String;
-                                          });
-                                        } else {
-                                          // For mobile
-                                          File imageFile = File(xfile.path);
-                                          List<int> imageBytes =
-                                              await imageFile.readAsBytes();
-                                          base64Image =
-                                              base64Encode(imageBytes);
-                                        }
-                                      }
-                                    },
-                                  ),
-                                ),
+                          Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: TextFormField(
+                              controller: nameController,
+                              decoration: InputDecoration(
+                                labelText: 'Product Name',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: 10),
                               ),
-                              Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: TextFormField(
-                                  controller: nameController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Product Name',
-                                    border: OutlineInputBorder(),
-                                    contentPadding: EdgeInsets.symmetric(
-                                        vertical: 10, horizontal: 10),
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: TextFormField(
-                                  controller: marcaController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Product Brand',
-                                    border: OutlineInputBorder(),
-                                    contentPadding: EdgeInsets.symmetric(
-                                        vertical: 10, horizontal: 10),
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: TextFormField(
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly
-                                  ],
-                                  controller: quantityController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Weight',
-                                    border: OutlineInputBorder(),
-                                    contentPadding: EdgeInsets.symmetric(
-                                        vertical: 10, horizontal: 10),
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: ElevatedButton(
-                                  child: const Text('Save'),
-                                  onPressed: () async {
-                                    if (_formKey.currentState!.validate()) {
-                                      _formKey.currentState!.save();
-                                      final num? quantityNum =
-                                          num.tryParse(quantityController.text);
-                                      final produto = Produto(
-                                          base64Image!,
-                                          nameController.text,
-                                          marcaController.text,
-                                          quantityNum!);
-                                      if (tabIndex == 0) {
-                                        produtosDespensa.add(produto);
-                                        await addPantryItem(
-                                            produto.name,
-                                            produto.brand,
-                                            1,
-                                            produto.picture,
-                                            produto.weight);
-                                      } else if (tabIndex == 1) {
-                                        produtosCompra.add(produto);
-                                        await addBuyListItem(
-                                            produto.name,
-                                            produto.brand,
-                                            0,
-                                            produto.picture,
-                                            produto.weight);
-                                      }
-                                      widget.callback();
-                                      Navigator.of(context).pop();
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.lightGreen),
-                                ),
-                              )
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                          Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: TextFormField(
+                              controller: marcaController,
+                              decoration: InputDecoration(
+                                labelText: 'Product Brand',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: 10),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: TextFormField(
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly
+                              ],
+                              controller: quantityController,
+                              decoration: InputDecoration(
+                                labelText: 'Weight',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: 10),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: ElevatedButton(
+                              // ignore: sort_child_properties_last
+                              child: const Text(
+                                'Save',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              onPressed: () async {
+                                if (_formKey.currentState!.validate()) {
+                                  _formKey.currentState!.save();
+                                  final num? quantityNum =
+                                      num.tryParse(quantityController.text);
+                                  final produto = Produto(
+                                      base64Image!,
+                                      nameController.text,
+                                      marcaController.text,
+                                      quantityNum!);
+                                  if (tabIndex == 0) {
+                                    produtosDespensa.add(produto);
+                                    await addPantryItem(
+                                        produto.name,
+                                        produto.brand,
+                                        1,
+                                        produto.picture,
+                                        produto.weight);
+                                  } else if (tabIndex == 1) {
+                                    produtosCompra.add(produto);
+                                    await addBuyListItem(
+                                        produto.name,
+                                        produto.brand,
+                                        0,
+                                        produto.picture,
+                                        produto.weight);
+                                  }
+                                  widget.callback();
+                                  Navigator.of(context).pop();
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.lightGreen,
+                                  minimumSize: Size(200, 50)),
+                            ),
+                          )
+                        ],
+                      ),
                     ),
-                  ));
+                  ],
+                ),
+              ),
+            ),
+          );
         });
   }
 }

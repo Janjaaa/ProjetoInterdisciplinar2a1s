@@ -80,7 +80,6 @@ Future loginUser(String email, String password) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', response.body);
     await prefs.setString('email', email);
-
     String? token = await prefs.getString('token');
     token = token!.substring(1, token.length - 1);
 
