@@ -256,17 +256,6 @@ class LoginFormState extends State<LoginForm> {
                           } else {
                             print("credentials incorrect");
                           }
-                          showDialog(
-                            context: context,
-                            builder: (context) {
-                              return AlertDialog(
-                                content: Text(usernameController.text),
-                              );
-                            },
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Processing Data')),
-                          );
                         }
                       },
                       style: ElevatedButton.styleFrom(
