@@ -169,6 +169,7 @@ class LoginFormState extends State<LoginForm> {
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
   final apiUrl = "localhost:3000/register";
+  String? emailError;
 
   @override
   void dispose() {
@@ -185,6 +186,9 @@ class LoginFormState extends State<LoginForm> {
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
     if (!emailRegex.hasMatch(value)) {
       return 'Please enter a valid email address';
+    }
+    if (emailError != null) {
+      return emailError;
     }
     return null;
   }
@@ -254,6 +258,10 @@ class LoginFormState extends State<LoginForm> {
                           } else if (response == "no house") {
                             context.go('/haveHouse.dart');
                           } else {
+                            setState(() {
+                              emailError = "Wrong email or password!";
+                            });
+                            _loginformKey.currentState!.validate();
                             print("credentials incorrect");
                           }
                         }
