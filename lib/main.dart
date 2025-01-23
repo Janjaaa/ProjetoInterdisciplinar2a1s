@@ -6,6 +6,7 @@ import 'createHouse.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 void main() => runApp(const MyApp());
 
@@ -29,6 +30,12 @@ final GoRouter _router = GoRouter(
           },
         ),
         GoRoute(
+          path: '/main.dart',
+          builder: (BuildContext context, GoRouterState state) {
+            return const HomeScreen();
+          },
+        ),
+        GoRoute(
           path: '/createHouse.dart',
           builder: (BuildContext context, GoRouterState state) {
             return CreateHousePage();
@@ -40,7 +47,12 @@ final GoRouter _router = GoRouter(
 );
 
 Future registerUser(String name, String email, String password) async {
-  var url = Uri.parse('http://localhost:3000/users/register');
+  var url;
+  if (kIsWeb) {
+    url = Uri.parse('http://localhost:3000/users/login');
+  } else {
+    url = Uri.parse('http://10.0.2.2:3000/users/login');
+  }
   var response = await http.post(
     url,
     headers: {
@@ -63,7 +75,12 @@ Future registerUser(String name, String email, String password) async {
 }
 
 Future loginUser(String email, String password) async {
-  var url = Uri.parse('http://localhost:3000/users/login');
+  Uri url;
+  if (kIsWeb) {
+    url = Uri.parse('http://localhost:3000/users/login');
+  } else {
+    url = Uri.parse('http://10.0.2.2:3000/users/login');
+  }
   var response = await http.post(
     url,
     headers: {
@@ -87,8 +104,13 @@ Future loginUser(String email, String password) async {
     print(decodedToken);
     print(decodedToken['data']['name']);
     var userHouse = decodedToken['data']['homeId'];
+    var url;
 
-    var url = Uri.parse('http://localhost:3000/house/gethouse/$userHouse');
+    if (kIsWeb) {
+      url = Uri.parse('http://localhost:3000/house/gethouse/$userHouse');
+    } else {
+      url = Uri.parse('http://10.0.2.2:3000/house/gethouse/$userHouse');
+    }
     response = await http.get(
       url,
       headers: {
@@ -135,12 +157,15 @@ class HomeScreen extends StatelessWidget {
         length: 2,
         child: Scaffold(
           appBar: AppBar(
-            title: Text(''),
-            bottom: TabBar(
-              tabs: [
-                Tab(text: 'Login'),
-                Tab(text: 'Signup'),
-              ],
+            title: null,
+            bottom: PreferredSize(
+              preferredSize: Size.fromHeight(0), // Adjust the height as needed
+              child: TabBar(
+                tabs: [
+                  Tab(text: 'Login'),
+                  Tab(text: 'Signup'),
+                ],
+              ),
             ),
           ),
           body: TabBarView(
@@ -168,7 +193,6 @@ class LoginFormState extends State<LoginForm> {
   final _loginformKey = GlobalKey<FormState>();
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
-  final apiUrl = "localhost:3000/register";
   String? emailError;
 
   @override
@@ -177,6 +201,21 @@ class LoginFormState extends State<LoginForm> {
     usernameController.dispose();
     passwordController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    checkLoginStatus();
+  }
+
+  Future<void> checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token != null) {
+      context.go('/ListsPage.dart');
+    }
   }
 
   String? emailValidator(String? value) {
@@ -196,7 +235,7 @@ class LoginFormState extends State<LoginForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -250,9 +289,13 @@ class LoginFormState extends State<LoginForm> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     child: ElevatedButton(
                       onPressed: () async {
+                        setState(() {
+                          emailError = null;
+                        });
                         if (_loginformKey.currentState!.validate()) {
                           final response = await loginUser(
                               usernameController.text, passwordController.text);
+
                           if (response == 200) {
                             context.go('/ListsPage.dart');
                           } else if (response == "no house") {
@@ -305,7 +348,6 @@ class SignupFormState extends State<SignupForm> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  final apiUrl = "localhost:3000/register";
   String? emailError;
 
   @override
@@ -409,6 +451,9 @@ class SignupFormState extends State<SignupForm> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     child: ElevatedButton(
                       onPressed: () async {
+                        setState(() {
+                          emailError = null;
+                        });
                         if (_signupformKey.currentState!.validate()) {
                           final response = await registerUser(
                               nameController.text,

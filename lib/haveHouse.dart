@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class HousePage extends StatefulWidget {
   @override
@@ -51,8 +52,13 @@ class _HousePageState extends State<HousePage> {
                 ),
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
-                    var url =
-                        Uri.parse('http://localhost:3000/house/joinhouse');
+                    var url;
+                    if (kIsWeb) {
+                      url = Uri.parse('http://localhost:3000/house/joinhouse');
+                    } else {
+                      url = Uri.parse('http://10.0.2.2:3000/house/joinhouse');
+                    }
+
                     final SharedPreferences prefs =
                         await SharedPreferences.getInstance();
                     String? token = await prefs.getString('token');

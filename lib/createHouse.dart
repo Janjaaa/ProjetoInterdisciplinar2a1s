@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 var uuid = Uuid();
 var houseCode = uuid.v4();
@@ -77,8 +78,13 @@ class _CreateHousePageState extends State<CreateHousePage> {
                   ),
                 ),
                 onPressed: () async {
-                  var url =
-                      Uri.parse('http://localhost:3000/house/createhouse');
+                  var url;
+                  if (kIsWeb) {
+                    url = Uri.parse('http://localhost:3000/house/createhouse');
+                  } else {
+                    url = Uri.parse('http://10.0.2.2:3000/house/createhouse');
+                  }
+
                   final SharedPreferences prefs =
                       await SharedPreferences.getInstance();
                   String? token = await prefs.getString('token');

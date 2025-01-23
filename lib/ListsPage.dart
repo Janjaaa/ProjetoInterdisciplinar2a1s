@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:form_builder_image_picker/form_builder_image_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
@@ -57,7 +58,12 @@ String _decodeBase64(String str) {
 
 Future addPantryItem(
     String name, String brand, num quantity, String picUrl, num weight) async {
-  var url = Uri.parse('http://localhost:3000/house/createpantryitem');
+  var url;
+  if (kIsWeb) {
+    url = Uri.parse('http://localhost:3000/house/createpantryitem');
+  } else {
+    url = Uri.parse('http://10.0.2.2:3000/house/createpantryitem');
+  }
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   String? token = await prefs.getString('token');
   token = token!.substring(1, token.length - 1);
@@ -85,7 +91,12 @@ Future addPantryItem(
 
 Future addBuyListItem(
     String name, String brand, num quantity, String picUrl, num weight) async {
-  var url = Uri.parse('http://localhost:3000/house/createbuylistitem');
+  var url;
+  if (kIsWeb) {
+    url = Uri.parse('http://localhost:3000/house/createbuylistitem');
+  } else {
+    url = Uri.parse('http://10.0.2.2:3000/house/createbuylistitem');
+  }
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   String? token = await prefs.getString('token');
   token = token!.substring(1, token.length - 1);
@@ -222,7 +233,13 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
     List<String> tempHouseUsers = [];
     bool tempIsHouseOwner = false;
 
-    var url = Uri.parse('http://localhost:3000/users/?homeId=$tempHouseCode');
+    var url;
+    if (kIsWeb) {
+      url = Uri.parse('http://localhost:3000/users/?homeId=$tempHouseCode');
+    } else {
+      url = Uri.parse('http://10.0.2.2:3000/users/?homeId=$tempHouseCode');
+    }
+
     var response = await http.get(
       url,
       headers: {
@@ -238,7 +255,11 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
     } else {
       print(response.statusCode);
     }
-    url = Uri.parse('http://localhost:3000/house/gethouse/$tempHouseCode');
+    if (kIsWeb) {
+      url = Uri.parse('http://localhost:3000/house/gethouse/$tempHouseCode');
+    } else {
+      url = Uri.parse('http://10.0.2.2:3000/house/gethouse/$tempHouseCode');
+    }
     response = await http.get(
       url,
       headers: {
@@ -339,8 +360,16 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                               await SharedPreferences.getInstance();
                           String? token = await prefs.getString('token');
                           token = token!.substring(1, token.length - 1);
-                          var url = Uri.parse(
-                              'http://localhost:3000/users/updateuser/$userId');
+
+                          var url;
+                          if (kIsWeb) {
+                            url = Uri.parse(
+                                'http://localhost:3000/users/updateuser/$userId');
+                          } else {
+                            url = Uri.parse(
+                                'http://10.0.2.2:3000/users/updateuser/$userId');
+                          }
+
                           var response = await http.put(
                             url,
                             headers: {
@@ -418,8 +447,14 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                               await SharedPreferences.getInstance();
                           String? token = await prefs.getString('token');
                           token = token!.substring(1, token.length - 1);
-                          var url = Uri.parse(
-                              'http://localhost:3000/house/searchitens/${_searchController.text}');
+                          var url;
+                          if (kIsWeb) {
+                            url = Uri.parse(
+                                'http://localhost:3000/house/searchitens/${_searchController.text}');
+                          } else {
+                            url = Uri.parse(
+                                'http://10.0.2.2:3000/house/searchitens/${_searchController.text}');
+                          }
                           var response = await http.get(
                             url,
                             headers: {
@@ -458,7 +493,12 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                   houseCode = decodedToken['data']['homeId'];
                   ;
                   userId = decodedToken['data']['userId'];
-                  var url = Uri.parse('http://localhost:3000/users/$userId');
+                  var url;
+                  if (kIsWeb) {
+                    url = Uri.parse('http://localhost:3000/users/$userId');
+                  } else {
+                    url = Uri.parse('http://10.0.2.2:3000/users/$userId');
+                  }
                   var response = await http.get(
                     url,
                     headers: {
@@ -522,8 +562,15 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                       ? IconButton(
                           icon: Icon(Icons.delete),
                           onPressed: () async {
-                            var url = Uri.parse(
-                                'http://localhost:3000/users/?homeId=$houseCode');
+                            var url;
+                            if (kIsWeb) {
+                              url = Uri.parse(
+                                  'http://localhost:3000/users/?homeId=$houseCode');
+                            } else {
+                              url = Uri.parse(
+                                  'http://10.0.2.2:3000/users/?homeId=$houseCode');
+                            }
+
                             final SharedPreferences prefs =
                                 await SharedPreferences.getInstance();
                             String? token = await prefs.getString('token');
@@ -535,8 +582,14 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                             });
                             if (response.statusCode == 200) {
                               var houseDecoded = json.decode(response.body);
-                              var url = Uri.parse(
-                                  'http://localhost:3000/users/deleteuseradmin/${houseDecoded[i]['_id']}');
+                              var url;
+                              if (kIsWeb) {
+                                url = Uri.parse(
+                                    'http://localhost:3000/users/deleteuseradmin/${houseDecoded[i]['_id']}');
+                              } else {
+                                url = Uri.parse(
+                                    'http://10.0.2.2:3000/users/deleteuseradmin/${houseDecoded[i]['_id']}');
+                              }
                               final SharedPreferences prefs =
                                   await SharedPreferences.getInstance();
                               String? token = await prefs.getString('token');
@@ -559,6 +612,26 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                         )
                       : null,
                 ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: ElevatedButton(
+                    style:
+                        ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    onPressed: () async {
+                      final SharedPreferences prefs =
+                          await SharedPreferences.getInstance();
+                      await prefs.remove('token');
+                      context.go('/main.dart');
+                    },
+                    child: Text(
+                      'Sign Out',
+                      style: TextStyle(color: Colors.black),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -579,7 +652,7 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                 controller: _controller,
                 tabs: listTabs,
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -611,7 +684,12 @@ class _PantryState extends State<Pantry> {
   }
 
   Future<List<Product>> fetchPantryItem() async {
-    var url = Uri.parse('http://localhost:3000/house/pantryitems');
+    var url;
+    if (kIsWeb) {
+      url = Uri.parse('http://localhost:3000/house/pantryitems');
+    } else {
+      url = Uri.parse('http://10.0.2.2:3000/house/pantryitems');
+    }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = await prefs.getString('token');
     token = token!.substring(1, token.length - 1);
@@ -796,9 +874,14 @@ class _ProductItemShopList extends State<ProductItemShopList> {
     setState(() {
       widget.product.quantity++;
     });
-
-    var url = Uri.parse(
-        'http://localhost:3000/house/editBuyListItem/${widget.product.id}');
+    var url;
+    if (kIsWeb) {
+      url = Uri.parse(
+          'http://localhost:3000/house/editBuyListItem/${widget.product.id}');
+    } else {
+      url = Uri.parse(
+          'http://10.0.2.2:3000/house/editBuyListItem/${widget.product.id}');
+    }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = await prefs.getString('token');
     token = token!.substring(1, token.length - 1);
@@ -837,8 +920,14 @@ class _ProductItemShopList extends State<ProductItemShopList> {
       setState(() {
         widget.product.quantity--;
       });
-      var url = Uri.parse(
-          'http://localhost:3000/house/editBuyListItem/${widget.product.id}');
+      var url;
+      if (kIsWeb) {
+        url = Uri.parse(
+            'http://localhost:3000/house/editBuyListItem/${widget.product.id}');
+      } else {
+        url = Uri.parse(
+            'http://10.0.2.2:3000/house/editBuyListItem/${widget.product.id}');
+      }
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = await prefs.getString('token');
       token = token!.substring(1, token.length - 1);
@@ -984,9 +1073,14 @@ class _ProductItemState extends State<ProductItem> {
     setState(() {
       quantity++;
     });
-
-    var url = Uri.parse(
-        'http://localhost:3000/house/editpantryitem/${widget.product.id}');
+    var url;
+    if (kIsWeb) {
+      url = Uri.parse(
+          'http://localhost:3000/house/editpantryitem/${widget.product.id}');
+    } else {
+      url = Uri.parse(
+          'http://10.0.2.2:3000/house/editpantryitem/${widget.product.id}');
+    }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = await prefs.getString('token');
     token = token!.substring(1, token.length - 1);
@@ -1013,8 +1107,14 @@ class _ProductItemState extends State<ProductItem> {
       quantity--;
     });
     if ((quantity + widget.product.quantity) > 0) {
-      var url = Uri.parse(
-          'http://localhost:3000/house/editpantryitem/${widget.product.id}');
+      var url;
+      if (kIsWeb) {
+        url = Uri.parse(
+            'http://localhost:3000/house/editpantryitem/${widget.product.id}');
+      } else {
+        url = Uri.parse(
+            'http://10.0.2.2:3000/house/editpantryitem/${widget.product.id}');
+      }
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = await prefs.getString('token');
       token = token!.substring(1, token.length - 1);
@@ -1036,8 +1136,14 @@ class _ProductItemState extends State<ProductItem> {
         print('Failed to update item: ${response.statusCode}');
       }
     } else {
-      var url = Uri.parse(
-          'http://localhost:3000/house/excludepantryitem/${widget.product.id}');
+      var url;
+      if (kIsWeb) {
+        url = Uri.parse(
+            'http://localhost:3000/house/excludepantryitem/${widget.product.id}');
+      } else {
+        url = Uri.parse(
+            'http://10.0.2.2:3000/house/excludepantryitem/${widget.product.id}');
+      }
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = await prefs.getString('token');
       token = token!.substring(1, token.length - 1);
@@ -1094,7 +1200,12 @@ class _ShopList extends State<ShopList> {
   }
 
   Future<List<Product>> fetchBuyListItem() async {
-    var url = Uri.parse('http://localhost:3000/house/buylistitems');
+    var url;
+    if (kIsWeb) {
+      url = Uri.parse('http://localhost:3000/house/buylistitems');
+    } else {
+      url = Uri.parse('http://10.0.2.2:3000/house/buylistitems');
+    }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = await prefs.getString('token');
     token = token!.substring(1, token.length - 1);
@@ -1189,8 +1300,14 @@ class _ShopList extends State<ShopList> {
                             .replaceAll('&#x2F;', '/')
                             .replaceAll('&#x3D;', '=')
                             .replaceAll('&#x2B;', '+');
-                        var url = Uri.parse(
-                            'http://localhost:3000/house/createpantryitem');
+                        var url;
+                        if (kIsWeb) {
+                          url = Uri.parse(
+                              'http://localhost:3000/house/createpantryitem');
+                        } else {
+                          url = Uri.parse(
+                              'http://10.0.2.2:3000/house/createpantryitem');
+                        }
                         final SharedPreferences prefs =
                             await SharedPreferences.getInstance();
                         String? token = await prefs.getString('token');
@@ -1215,8 +1332,13 @@ class _ShopList extends State<ShopList> {
                           print('failed to add item ${response.statusCode}');
                         }
 
-                        url = Uri.parse(
-                            'http://localhost:3000/house/excludeBuyListItem/${item.id}');
+                        if (kIsWeb) {
+                          url = Uri.parse(
+                              'http://localhost:3000/house/excludeBuyListItem/${item.id}');
+                        } else {
+                          url = Uri.parse(
+                              'http://10.0.2.2:3000/house/excludeBuyListItem/${item.id}');
+                        }
 
                         response = await http.delete(
                           url,
