@@ -448,12 +448,22 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                           String? token = await prefs.getString('token');
                           token = token!.substring(1, token.length - 1);
                           var url;
-                          if (kIsWeb) {
-                            url = Uri.parse(
-                                'http://localhost:3000/house/searchitens/${_searchController.text}');
+                          if (tabIndex == 0) {
+                            if (kIsWeb) {
+                              url = Uri.parse(
+                                  'http://localhost:3000/house/searchitenspantry/${_searchController.text}');
+                            } else {
+                              url = Uri.parse(
+                                  'http://10.0.2.2:3000/house/searchitenspantry/${_searchController.text}');
+                            }
                           } else {
-                            url = Uri.parse(
-                                'http://10.0.2.2:3000/house/searchitens/${_searchController.text}');
+                            if (kIsWeb) {
+                              url = Uri.parse(
+                                  'http://localhost:3000/house/searchitensbuylist/${_searchController.text}');
+                            } else {
+                              url = Uri.parse(
+                                  'http://10.0.2.2:3000/house/searchitensbuylist/${_searchController.text}');
+                            }
                           }
                           var response = await http.get(
                             url,
@@ -465,6 +475,7 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
 
                           if (response.statusCode == 200) {
                             var searchResponse = json.decode(response.body);
+                            print(searchResponse[0]['_id']);
                             setState(() {
                               searchedItem = searchResponse[0]['_id'];
                             });
@@ -722,25 +733,36 @@ class _PantryState extends State<Pantry> {
               return Center(child: Text('Error: ${snapshot.error}'));
             } else if (snapshot.hasData) {
               List<Product> products = snapshot.data!;
+
+              List<Product> filteredProducts = searchedItem.isEmpty
+                  ? products
+                  : products
+                      .where((product) => product.id == searchedItem)
+                      .toList();
+
               return Column(
                 children: [
                   Expanded(
                     child: ListView.builder(
-                      itemCount: products.length,
+                      itemCount: filteredProducts.length,
                       itemBuilder: (context, i) {
                         String? cleanedBase64String =
-                            products[i].picUrl?.split(',').last;
+                            filteredProducts[i].picUrl?.split(',').last;
                         cleanedBase64String = cleanedBase64String!
                             .replaceAll(RegExp(r'\s'), '')
                             .replaceAll('&#x2F;', '/')
                             .replaceAll('&#x3D;', '=')
                             .replaceAll('&#x2B;', '+');
                         final decodedBytes = base64Decode(cleanedBase64String);
-                        return ProductItem(
-                          product: products[i],
+                        final productItem = ProductItemShopList(
+                          product: filteredProducts[i],
                           decodedBytes: decodedBytes,
                           callback: refresh,
                         );
+                        if (searchedItem.isNotEmpty) {
+                          filteredProducts = products;
+                        }
+                        return productItem;
                       },
                     ),
                   ),
