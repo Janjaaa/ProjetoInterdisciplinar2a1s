@@ -13,7 +13,6 @@ List<int>? imgForApi;
 int tabIndex = 0;
 List<Product> itemsCarro = [];
 String searchedItem = "";
-
 String? emailValidator(String? value) {
   if (value == null || value.isEmpty) {
     return 'Please enter some text';
@@ -754,7 +753,7 @@ class _PantryState extends State<Pantry> {
                             .replaceAll('&#x3D;', '=')
                             .replaceAll('&#x2B;', '+');
                         final decodedBytes = base64Decode(cleanedBase64String);
-                        final productItem = ProductItemShopList(
+                        final productItem = ProductItem(
                           product: filteredProducts[i],
                           decodedBytes: decodedBytes,
                           callback: refresh,
@@ -781,11 +780,13 @@ class ProductItemShopList extends StatefulWidget {
   final Product product;
   final Uint8List decodedBytes;
   final VoidCallback callback;
+  final ValueNotifier<bool> buttonNotifier;
 
   ProductItemShopList(
       {required this.product,
       required this.decodedBytes,
-      required this.callback});
+      required this.callback,
+      required this.buttonNotifier});
 
   @override
   _ProductItemShopList createState() => _ProductItemShopList();
@@ -847,7 +848,7 @@ class _ProductItemShopList extends State<ProductItemShopList> {
             children: [
               ElevatedButton(
                 onPressed: () async {
-                  await _incrementQuantity();
+                  await _incrementQuantity(widget.buttonNotifier);
                 },
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(
@@ -872,7 +873,7 @@ class _ProductItemShopList extends State<ProductItemShopList> {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  await _decrementQuantity();
+                  await _decrementQuantity(widget.buttonNotifier);
                 },
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(
@@ -892,7 +893,7 @@ class _ProductItemShopList extends State<ProductItemShopList> {
     );
   }
 
-  Future<void> _incrementQuantity() async {
+  Future<void> _incrementQuantity(buttonNotifier) async {
     setState(() {
       widget.product.quantity++;
     });
@@ -928,6 +929,7 @@ class _ProductItemShopList extends State<ProductItemShopList> {
       if (widget.product.quantity == 1) {
         widget.product.picUrl = produtoImg;
         itemsCarro.add(widget.product);
+        buttonNotifier.value = itemsCarro.isNotEmpty;
       } else if (widget.product.quantity > 1) {
         updateProductQuantity(
             itemsCarro, widget.product.id, widget.product.quantity);
@@ -937,7 +939,7 @@ class _ProductItemShopList extends State<ProductItemShopList> {
     }
   }
 
-  Future<void> _decrementQuantity() async {
+  Future<void> _decrementQuantity(buttonNotifier) async {
     if (widget.product.quantity > 0) {
       setState(() {
         widget.product.quantity--;
@@ -968,6 +970,7 @@ class _ProductItemShopList extends State<ProductItemShopList> {
       if (response.statusCode == 200 && response.body == "Item updated") {
         if (widget.product.quantity == 0) {
           removeProductById(itemsCarro, widget.product.id);
+          buttonNotifier.value = itemsCarro.isNotEmpty;
         }
       } else {
         print('Failed to update item: ${response.statusCode}');
@@ -1098,10 +1101,10 @@ class _ProductItemState extends State<ProductItem> {
     var url;
     if (kIsWeb) {
       url = Uri.parse(
-          'http://localhost:3000/house/editpantryitem/${widget.product.id}');
+          'http://localhost:3000/house/editPantryItem/${widget.product.id}');
     } else {
       url = Uri.parse(
-          'http://10.0.2.2:3000/house/editpantryitem/${widget.product.id}');
+          'http://10.0.2.2:3000/house/editPantryItem/${widget.product.id}');
     }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = await prefs.getString('token');
@@ -1207,7 +1210,7 @@ class ShopList extends StatefulWidget {
 class _ShopList extends State<ShopList> {
   final nameController = TextEditingController();
   final weightController = TextEditingController();
-
+  late ValueNotifier<bool> isCartButtonEnabled = ValueNotifier<bool>(false);
   final ValueNotifier<int> q = ValueNotifier<int>(0);
   late Future<List<Product>> pantryFuture;
 
@@ -1215,6 +1218,9 @@ class _ShopList extends State<ShopList> {
   void initState() {
     super.initState();
     pantryFuture = fetchBuyListItem();
+    if (itemsCarro.isNotEmpty) {
+      isCartButtonEnabled = ValueNotifier<bool>(true);
+    }
   }
 
   refresh() {
@@ -1251,140 +1257,155 @@ class _ShopList extends State<ShopList> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: FutureBuilder<List<Product>>(
-          future: fetchBuyListItem(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            } else if (snapshot.hasData) {
-              List<Product> products = snapshot.data!;
+      body: FutureBuilder<List<Product>>(
+        future: fetchBuyListItem(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (snapshot.hasData) {
+            List<Product> products = snapshot.data!;
 
-              List<Product> filteredProducts = searchedItem.isEmpty
-                  ? products
-                  : products
-                      .where((product) => product.id == searchedItem)
-                      .toList();
+            List<Product> filteredProducts = searchedItem.isEmpty
+                ? products
+                : products
+                    .where((product) => product.id == searchedItem)
+                    .toList();
 
-              return Column(
-                children: [
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: filteredProducts.length,
-                      itemBuilder: (context, i) {
-                        String? cleanedBase64String =
-                            filteredProducts[i].picUrl?.split(',').last;
-                        cleanedBase64String = cleanedBase64String!
-                            .replaceAll(RegExp(r'\s'), '')
-                            .replaceAll('&#x2F;', '/')
-                            .replaceAll('&#x3D;', '=')
-                            .replaceAll('&#x2B;', '+');
-                        final decodedBytes = base64Decode(cleanedBase64String);
-                        final productItem = ProductItemShopList(
-                          product: filteredProducts[i],
-                          decodedBytes: decodedBytes,
-                          callback: refresh,
-                        );
-                        if (searchedItem.isNotEmpty) {
-                          filteredProducts = products;
-                        }
-
-                        return productItem;
-                      },
-                    ),
-                  ),
-                ],
-              );
-            } else {
-              return Center(child: Text('No data'));
-            }
-          },
-        ),
-        floatingActionButton: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            Align(
-              alignment: Alignment.bottomRight,
-              child: AddContainers(q: q, callback: refresh),
-            ),
-            Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 0, left: 40),
-                  child: FloatingActionButton(
-                    onPressed: () async {
-                      for (var item in itemsCarro) {
-                        String? cleanedBase64String =
-                            item.picUrl?.split(',').last;
-                        cleanedBase64String = cleanedBase64String!
-                            .replaceAll(RegExp(r'\s'), '')
-                            .replaceAll('&#x2F;', '/')
-                            .replaceAll('&#x3D;', '=')
-                            .replaceAll('&#x2B;', '+');
-                        var url;
-                        if (kIsWeb) {
-                          url = Uri.parse(
-                              'http://localhost:3000/house/createpantryitem');
-                        } else {
-                          url = Uri.parse(
-                              'http://10.0.2.2:3000/house/createpantryitem');
-                        }
-                        final SharedPreferences prefs =
-                            await SharedPreferences.getInstance();
-                        String? token = await prefs.getString('token');
-                        token = token!.substring(1, token.length - 1);
-                        var response = await http.post(
-                          url,
-                          headers: {
-                            'Authorization': 'Bearer $token',
-                            'Content-Type': 'application/json',
-                          },
-                          body: jsonEncode({
-                            'name': item.name,
-                            'brand': item.brand,
-                            'quantity': item.quantity,
-                            'picUrl': cleanedBase64String,
-                            'weight': item.weight,
-                          }),
-                        );
-
-                        if (response.statusCode == 200) {
-                        } else {
-                          print('failed to add item ${response.statusCode}');
-                        }
-
-                        if (kIsWeb) {
-                          url = Uri.parse(
-                              'http://localhost:3000/house/excludeBuyListItem/${item.id}');
-                        } else {
-                          url = Uri.parse(
-                              'http://10.0.2.2:3000/house/excludeBuyListItem/${item.id}');
-                        }
-
-                        response = await http.delete(
-                          url,
-                          headers: {
-                            'Authorization': 'Bearer $token',
-                            'Content-Type': 'application/json',
-                          },
-                        );
-
-                        if (response.statusCode == 200) {
-                          itemsCarro = [];
-                          setState(() {});
-                        } else {
-                          print(response.statusCode);
-                        }
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: filteredProducts.length,
+                    itemBuilder: (context, i) {
+                      String? cleanedBase64String =
+                          filteredProducts[i].picUrl?.split(',').last;
+                      cleanedBase64String = cleanedBase64String!
+                          .replaceAll(RegExp(r'\s'), '')
+                          .replaceAll('&#x2F;', '/')
+                          .replaceAll('&#x3D;', '=')
+                          .replaceAll('&#x2B;', '+');
+                      final decodedBytes = base64Decode(cleanedBase64String);
+                      final productItem = ProductItemShopList(
+                        product: filteredProducts[i],
+                        decodedBytes: decodedBytes,
+                        callback: refresh,
+                        buttonNotifier: isCartButtonEnabled,
+                      );
+                      if (searchedItem.isNotEmpty) {
+                        filteredProducts = products;
                       }
+
+                      return productItem;
                     },
-                    backgroundColor: Colors.lightGreenAccent,
+                  ),
+                ),
+              ],
+            );
+          } else {
+            return Center(child: Text('No data'));
+          }
+        },
+      ),
+      floatingActionButton: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          Align(
+            alignment: Alignment.bottomRight,
+            child: AddContainers(q: q, callback: refresh),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 0, left: 40),
+              child: ValueListenableBuilder<bool>(
+                valueListenable: isCartButtonEnabled,
+                builder: (context, isEnabled, child) {
+                  return FloatingActionButton(
+                    onPressed: isEnabled
+                        ? () async {
+                            for (var item in itemsCarro) {
+                              String? cleanedBase64String =
+                                  item.picUrl?.split(',').last;
+                              cleanedBase64String = cleanedBase64String!
+                                  .replaceAll(RegExp(r'\s'), '')
+                                  .replaceAll('&#x2F;', '/')
+                                  .replaceAll('&#x3D;', '=')
+                                  .replaceAll('&#x2B;', '+');
+                              var url;
+                              if (kIsWeb) {
+                                url = Uri.parse(
+                                    'http://localhost:3000/house/createpantryitem');
+                              } else {
+                                url = Uri.parse(
+                                    'http://10.0.2.2:3000/house/createpantryitem');
+                              }
+                              final SharedPreferences prefs =
+                                  await SharedPreferences.getInstance();
+                              String? token = await prefs.getString('token');
+                              token = token!.substring(1, token.length - 1);
+                              var response = await http.post(
+                                url,
+                                headers: {
+                                  'Authorization': 'Bearer $token',
+                                  'Content-Type': 'application/json',
+                                },
+                                body: jsonEncode({
+                                  'name': item.name,
+                                  'brand': item.brand,
+                                  'quantity': item.quantity,
+                                  'picUrl': cleanedBase64String,
+                                  'weight': item.weight,
+                                }),
+                              );
+
+                              if (response.statusCode == 200) {
+                              } else {
+                                print(
+                                    'failed to add item ${response.statusCode}');
+                              }
+
+                              if (kIsWeb) {
+                                url = Uri.parse(
+                                    'http://localhost:3000/house/excludeBuyListItem/${item.id}');
+                              } else {
+                                url = Uri.parse(
+                                    'http://10.0.2.2:3000/house/excludeBuyListItem/${item.id}');
+                              }
+
+                              response = await http.delete(
+                                url,
+                                headers: {
+                                  'Authorization': 'Bearer $token',
+                                  'Content-Type': 'application/json',
+                                },
+                              );
+
+                              if (response.statusCode == 200) {
+                                setState(() {
+                                  itemsCarro = [];
+                                  isCartButtonEnabled =
+                                      ValueNotifier<bool>(false);
+                                });
+                              } else {
+                                print(response.statusCode);
+                              }
+                            }
+                          }
+                        : null,
+                    backgroundColor:
+                        isEnabled ? Colors.lightGreenAccent : Colors.grey,
                     child:
                         Icon(Icons.shopping_cart_checkout, color: Colors.black),
-                  ),
-                ))
-          ],
-        ));
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
