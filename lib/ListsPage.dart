@@ -59,9 +59,9 @@ Future addPantryItem(
     String name, String brand, num quantity, String picUrl, num weight) async {
   var url;
   if (kIsWeb) {
-    url = Uri.parse('http://localhost:3000/house/createpantryitem');
+    url = Uri.parse('https://servidor-ssw.onrender.com/house/createpantryitem');
   } else {
-    url = Uri.parse('http://10.0.2.2:3000/house/createpantryitem');
+    url = Uri.parse('https://servidor-ssw.onrender.com/house/createpantryitem');
   }
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   String? token = await prefs.getString('token');
@@ -92,9 +92,11 @@ Future addBuyListItem(
     String name, String brand, num quantity, String picUrl, num weight) async {
   var url;
   if (kIsWeb) {
-    url = Uri.parse('http://localhost:3000/house/createbuylistitem');
+    url =
+        Uri.parse('https://servidor-ssw.onrender.com/house/createbuylistitem');
   } else {
-    url = Uri.parse('http://10.0.2.2:3000/house/createbuylistitem');
+    url =
+        Uri.parse('https://servidor-ssw.onrender.com/house/createbuylistitem');
   }
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   String? token = await prefs.getString('token');
@@ -234,9 +236,11 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
 
     var url;
     if (kIsWeb) {
-      url = Uri.parse('http://localhost:3000/users/?homeId=$tempHouseCode');
+      url = Uri.parse(
+          'https://servidor-ssw.onrender.com/users/?homeId=$tempHouseCode');
     } else {
-      url = Uri.parse('http://10.0.2.2:3000/users/?homeId=$tempHouseCode');
+      url = Uri.parse(
+          'https://servidor-ssw.onrender.com/users/?homeId=$tempHouseCode');
     }
 
     var response = await http.get(
@@ -255,9 +259,11 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
       print(response.statusCode);
     }
     if (kIsWeb) {
-      url = Uri.parse('http://localhost:3000/house/gethouse/$tempHouseCode');
+      url = Uri.parse(
+          'https://servidor-ssw.onrender.com/house/gethouse/$tempHouseCode');
     } else {
-      url = Uri.parse('http://10.0.2.2:3000/house/gethouse/$tempHouseCode');
+      url = Uri.parse(
+          'https://servidor-ssw.onrender.com/house/gethouse/$tempHouseCode');
     }
     response = await http.get(
       url,
@@ -363,10 +369,10 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                           var url;
                           if (kIsWeb) {
                             url = Uri.parse(
-                                'http://localhost:3000/users/updateuser/$userId');
+                                'https://servidor-ssw.onrender.com/users/updateuser/$userId');
                           } else {
                             url = Uri.parse(
-                                'http://10.0.2.2:3000/users/updateuser/$userId');
+                                'https://servidor-ssw.onrender.com/users/updateuser/$userId');
                           }
 
                           var response = await http.put(
@@ -411,124 +417,132 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        appBar: AppBar(
-          title: Row(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Row(
-                    children: [
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          onChanged: (value) {
-                            searchedItem = _searchController.text;
-                            if (searchedItem == "") {
-                              setState(() {});
-                            }
-                          },
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Search items',
-                            border: InputBorder.none,
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(kToolbarHeight + 20),
+          child: Container(
+            margin: EdgeInsets.only(top: 15),
+            child: AppBar(
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey,
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Row(
+                        children: [
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              onChanged: (value) {
+                                searchedItem = _searchController.text;
+                                if (searchedItem == "") {
+                                  setState(() {});
+                                }
+                              },
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Search items',
+                                border: InputBorder.none,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.search),
-                        onPressed: () async {
-                          final SharedPreferences prefs =
-                              await SharedPreferences.getInstance();
-                          String? token = await prefs.getString('token');
-                          token = token!.substring(1, token.length - 1);
-                          var url;
-                          if (tabIndex == 0) {
-                            if (kIsWeb) {
-                              url = Uri.parse(
-                                  'http://localhost:3000/house/searchitenspantry/${_searchController.text}');
-                            } else {
-                              url = Uri.parse(
-                                  'http://10.0.2.2:3000/house/searchitenspantry/${_searchController.text}');
-                            }
-                          } else {
-                            if (kIsWeb) {
-                              url = Uri.parse(
-                                  'http://localhost:3000/house/searchitensbuylist/${_searchController.text}');
-                            } else {
-                              url = Uri.parse(
-                                  'http://10.0.2.2:3000/house/searchitensbuylist/${_searchController.text}');
-                            }
-                          }
-                          var response = await http.get(
-                            url,
-                            headers: {
-                              'Authorization': 'Bearer $token',
-                              'Content-Type': 'application/json',
+                          IconButton(
+                            icon: Icon(Icons.search),
+                            onPressed: () async {
+                              final SharedPreferences prefs =
+                                  await SharedPreferences.getInstance();
+                              String? token = await prefs.getString('token');
+                              token = token!.substring(1, token.length - 1);
+                              var url;
+                              if (tabIndex == 0) {
+                                if (kIsWeb) {
+                                  url = Uri.parse(
+                                      'https://servidor-ssw.onrender.com/house/searchitenspantry/${_searchController.text}');
+                                } else {
+                                  url = Uri.parse(
+                                      'https://servidor-ssw.onrender.com/house/searchitenspantry/${_searchController.text}');
+                                }
+                              } else {
+                                if (kIsWeb) {
+                                  url = Uri.parse(
+                                      'https://servidor-ssw.onrender.com/house/searchitensbuylist/${_searchController.text}');
+                                } else {
+                                  url = Uri.parse(
+                                      'https://servidor-ssw.onrender.com/house/searchitensbuylist/${_searchController.text}');
+                                }
+                              }
+                              var response = await http.get(
+                                url,
+                                headers: {
+                                  'Authorization': 'Bearer $token',
+                                  'Content-Type': 'application/json',
+                                },
+                              );
+
+                              if (response.statusCode == 200) {
+                                var searchResponse = json.decode(response.body);
+                                print(searchResponse[0]['_id']);
+                                setState(() {
+                                  searchedItem = searchResponse[0]['_id'];
+                                });
+                              } else {
+                                setState(() {
+                                  searchedItem = "";
+                                });
+                                print(response.statusCode);
+                              }
                             },
-                          );
-
-                          if (response.statusCode == 200) {
-                            var searchResponse = json.decode(response.body);
-                            print(searchResponse[0]['_id']);
-                            setState(() {
-                              searchedItem = searchResponse[0]['_id'];
-                            });
-                          } else {
-                            setState(() {
-                              searchedItem = "";
-                            });
-                            print(response.statusCode);
-                          }
-                        },
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.account_circle),
-                onPressed: () async {
-                  final SharedPreferences prefs =
-                      await SharedPreferences.getInstance();
-                  String? token = await prefs.getString('token');
-                  token = token!.substring(1, token.length - 1);
-                  Map<String, dynamic> decodedToken = parseJwt(token);
-                  userName = decodedToken['data']['name'];
-                  ;
-                  houseCode = decodedToken['data']['homeId'];
-                  ;
-                  userId = decodedToken['data']['userId'];
-                  var url;
-                  if (kIsWeb) {
-                    url = Uri.parse('http://localhost:3000/users/$userId');
-                  } else {
-                    url = Uri.parse('http://10.0.2.2:3000/users/$userId');
-                  }
-                  var response = await http.get(
-                    url,
-                    headers: {
-                      'Authorization': 'Bearer $token',
-                      'Content-Type': 'application/json',
+                  IconButton(
+                    icon: Icon(Icons.account_circle),
+                    onPressed: () async {
+                      final SharedPreferences prefs =
+                          await SharedPreferences.getInstance();
+                      String? token = await prefs.getString('token');
+                      token = token!.substring(1, token.length - 1);
+                      Map<String, dynamic> decodedToken = parseJwt(token);
+                      userName = decodedToken['data']['name'];
+                      ;
+                      houseCode = decodedToken['data']['homeId'];
+                      ;
+                      userId = decodedToken['data']['userId'];
+                      var url;
+                      if (kIsWeb) {
+                        url = Uri.parse(
+                            'https://servidor-ssw.onrender.com/users/$userId');
+                      } else {
+                        url = Uri.parse(
+                            'https://servidor-ssw.onrender.com/users/$userId');
+                      }
+                      var response = await http.get(
+                        url,
+                        headers: {
+                          'Authorization': 'Bearer $token',
+                          'Content-Type': 'application/json',
+                        },
+                      );
+
+                      if (response.statusCode == 200) {
+                        var userResponse = json.decode(response.body);
+                        user = userResponse[0];
+                      } else {
+                        print(response.statusCode);
+                      }
+
+                      userEmail = user['email'];
+                      _showProfileModal(context);
                     },
-                  );
-
-                  if (response.statusCode == 200) {
-                    var userResponse = json.decode(response.body);
-                    user = userResponse[0];
-                  } else {
-                    print(response.statusCode);
-                  }
-
-                  userEmail = user['email'];
-                  _showProfileModal(context);
-                },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
         onDrawerChanged: (isOpened) {
@@ -575,10 +589,10 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                             var url;
                             if (kIsWeb) {
                               url = Uri.parse(
-                                  'http://localhost:3000/users/?homeId=$houseCode');
+                                  'https://servidor-ssw.onrender.com/users/?homeId=$houseCode');
                             } else {
                               url = Uri.parse(
-                                  'http://10.0.2.2:3000/users/?homeId=$houseCode');
+                                  'https://servidor-ssw.onrender.com/users/?homeId=$houseCode');
                             }
 
                             final SharedPreferences prefs =
@@ -595,10 +609,10 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                               var url;
                               if (kIsWeb) {
                                 url = Uri.parse(
-                                    'http://localhost:3000/users/deleteuseradmin/${houseDecoded[i]['_id']}');
+                                    'https://servidor-ssw.onrender.com/users/deleteuseradmin/${houseDecoded[i]['_id']}');
                               } else {
                                 url = Uri.parse(
-                                    'http://10.0.2.2:3000/users/deleteuseradmin/${houseDecoded[i]['_id']}');
+                                    'https://servidor-ssw.onrender.com/users/deleteuseradmin/${houseDecoded[i]['_id']}');
                               }
                               final SharedPreferences prefs =
                                   await SharedPreferences.getInstance();
@@ -658,6 +672,7 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
             ),
             Container(
               color: Colors.grey,
+              height: 55,
               child: TabBar(
                 controller: _controller,
                 tabs: listTabs,
@@ -696,9 +711,9 @@ class _PantryState extends State<Pantry> {
   Future<List<Product>> fetchPantryItem() async {
     var url;
     if (kIsWeb) {
-      url = Uri.parse('http://localhost:3000/house/pantryitems');
+      url = Uri.parse('https://servidor-ssw.onrender.com/house/pantryitems');
     } else {
-      url = Uri.parse('http://10.0.2.2:3000/house/pantryitems');
+      url = Uri.parse('https://servidor-ssw.onrender.com/house/pantryitems');
     }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = await prefs.getString('token');
@@ -855,7 +870,7 @@ class _ProductItemShopList extends State<ProductItemShopList> {
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   padding: EdgeInsets.all(8.0),
-                  backgroundColor: Colors.green,
+                  backgroundColor: const Color.fromARGB(255, 112, 223, 115),
                   minimumSize: Size(40, 40),
                   maximumSize: Size(40, 40),
                 ),
@@ -867,7 +882,7 @@ class _ProductItemShopList extends State<ProductItemShopList> {
                   'X ${quantity + widget.product.quantity}',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey,
+                    color: const Color.fromARGB(255, 17, 17, 17),
                   ),
                 ),
               ),
@@ -900,10 +915,10 @@ class _ProductItemShopList extends State<ProductItemShopList> {
     var url;
     if (kIsWeb) {
       url = Uri.parse(
-          'http://localhost:3000/house/editBuyListItem/${widget.product.id}');
+          'https://servidor-ssw.onrender.com/house/editBuyListItem/${widget.product.id}');
     } else {
       url = Uri.parse(
-          'http://10.0.2.2:3000/house/editBuyListItem/${widget.product.id}');
+          'https://servidor-ssw.onrender.com/house/editBuyListItem/${widget.product.id}');
     }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = await prefs.getString('token');
@@ -947,10 +962,10 @@ class _ProductItemShopList extends State<ProductItemShopList> {
       var url;
       if (kIsWeb) {
         url = Uri.parse(
-            'http://localhost:3000/house/editBuyListItem/${widget.product.id}');
+            'https://servidor-ssw.onrender.com/house/editBuyListItem/${widget.product.id}');
       } else {
         url = Uri.parse(
-            'http://10.0.2.2:3000/house/editBuyListItem/${widget.product.id}');
+            'https://servidor-ssw.onrender.com/house/editBuyListItem/${widget.product.id}');
       }
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = await prefs.getString('token');
@@ -1056,7 +1071,7 @@ class _ProductItemState extends State<ProductItem> {
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   padding: EdgeInsets.all(8.0),
-                  backgroundColor: Colors.green,
+                  backgroundColor: const Color.fromARGB(255, 112, 223, 115),
                   minimumSize: Size(40, 40),
                   maximumSize: Size(40, 40),
                 ),
@@ -1068,7 +1083,7 @@ class _ProductItemState extends State<ProductItem> {
                   'X ${quantity + widget.product.quantity}',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey,
+                    color: const Color.fromARGB(255, 0, 0, 0),
                   ),
                 ),
               ),
@@ -1101,10 +1116,10 @@ class _ProductItemState extends State<ProductItem> {
     var url;
     if (kIsWeb) {
       url = Uri.parse(
-          'http://localhost:3000/house/editPantryItem/${widget.product.id}');
+          'https://servidor-ssw.onrender.com/house/editPantryItem/${widget.product.id}');
     } else {
       url = Uri.parse(
-          'http://10.0.2.2:3000/house/editPantryItem/${widget.product.id}');
+          'https://servidor-ssw.onrender.com/house/editPantryItem/${widget.product.id}');
     }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = await prefs.getString('token');
@@ -1135,10 +1150,10 @@ class _ProductItemState extends State<ProductItem> {
       var url;
       if (kIsWeb) {
         url = Uri.parse(
-            'http://localhost:3000/house/editpantryitem/${widget.product.id}');
+            'https://servidor-ssw.onrender.com/house/editpantryitem/${widget.product.id}');
       } else {
         url = Uri.parse(
-            'http://10.0.2.2:3000/house/editpantryitem/${widget.product.id}');
+            'https://servidor-ssw.onrender.com/house/editpantryitem/${widget.product.id}');
       }
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = await prefs.getString('token');
@@ -1164,10 +1179,10 @@ class _ProductItemState extends State<ProductItem> {
       var url;
       if (kIsWeb) {
         url = Uri.parse(
-            'http://localhost:3000/house/excludepantryitem/${widget.product.id}');
+            'https://servidor-ssw.onrender.com/house/excludepantryitem/${widget.product.id}');
       } else {
         url = Uri.parse(
-            'http://10.0.2.2:3000/house/excludepantryitem/${widget.product.id}');
+            'https://servidor-ssw.onrender.com/house/excludepantryitem/${widget.product.id}');
       }
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = await prefs.getString('token');
@@ -1230,9 +1245,9 @@ class _ShopList extends State<ShopList> {
   Future<List<Product>> fetchBuyListItem() async {
     var url;
     if (kIsWeb) {
-      url = Uri.parse('http://localhost:3000/house/buylistitems');
+      url = Uri.parse('https://servidor-ssw.onrender.com/house/buylistitems');
     } else {
-      url = Uri.parse('http://10.0.2.2:3000/house/buylistitems');
+      url = Uri.parse('https://servidor-ssw.onrender.com/house/buylistitems');
     }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = await prefs.getString('token');
@@ -1336,10 +1351,10 @@ class _ShopList extends State<ShopList> {
                               var url;
                               if (kIsWeb) {
                                 url = Uri.parse(
-                                    'http://localhost:3000/house/createpantryitem');
+                                    'https://servidor-ssw.onrender.com/house/createpantryitem');
                               } else {
                                 url = Uri.parse(
-                                    'http://10.0.2.2:3000/house/createpantryitem');
+                                    'https://servidor-ssw.onrender.com/house/createpantryitem');
                               }
                               final SharedPreferences prefs =
                                   await SharedPreferences.getInstance();
@@ -1368,10 +1383,10 @@ class _ShopList extends State<ShopList> {
 
                               if (kIsWeb) {
                                 url = Uri.parse(
-                                    'http://localhost:3000/house/excludeBuyListItem/${item.id}');
+                                    'https://servidor-ssw.onrender.com/house/excludeBuyListItem/${item.id}');
                               } else {
                                 url = Uri.parse(
-                                    'http://10.0.2.2:3000/house/excludeBuyListItem/${item.id}');
+                                    'https://servidor-ssw.onrender.com/house/excludeBuyListItem/${item.id}');
                               }
 
                               response = await http.delete(

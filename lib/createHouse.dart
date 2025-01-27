@@ -80,9 +80,9 @@ class _CreateHousePageState extends State<CreateHousePage> {
                 onPressed: () async {
                   var url;
                   if (kIsWeb) {
-                    url = Uri.parse('http://localhost:3000/house/createhouse');
+                    url = Uri.parse('https://servidor-ssw.onrender.com/house/createhouse');
                   } else {
-                    url = Uri.parse('http://10.0.2.2:3000/house/createhouse');
+                    url = Uri.parse('https://servidor-ssw.onrender.com/house/createhouse');
                   }
 
                   final SharedPreferences prefs =

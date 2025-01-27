@@ -49,9 +49,9 @@ final GoRouter _router = GoRouter(
 Future registerUser(String name, String email, String password) async {
   var url;
   if (kIsWeb) {
-    url = Uri.parse('http://localhost:3000/users/login');
+    url = Uri.parse('https://servidor-ssw.onrender.com/users/login');
   } else {
-    url = Uri.parse('http://10.0.2.2:3000/users/login');
+    url = Uri.parse('https://servidor-ssw.onrender.com/users/login');
   }
   var response = await http.post(
     url,
@@ -77,9 +77,9 @@ Future registerUser(String name, String email, String password) async {
 Future loginUser(String email, String password) async {
   Uri url;
   if (kIsWeb) {
-    url = Uri.parse('http://localhost:3000/users/login');
+    url = Uri.parse('https://servidor-ssw.onrender.com/users/login');
   } else {
-    url = Uri.parse('http://10.0.2.2:3000/users/login');
+    url = Uri.parse('https://servidor-ssw.onrender.com/users/login');
   }
   var response = await http.post(
     url,
@@ -107,9 +107,9 @@ Future loginUser(String email, String password) async {
     var url;
 
     if (kIsWeb) {
-      url = Uri.parse('http://localhost:3000/house/gethouse/$userHouse');
+      url = Uri.parse('https://servidor-ssw.onrender.com/house/gethouse/$userHouse');
     } else {
-      url = Uri.parse('http://10.0.2.2:3000/house/gethouse/$userHouse');
+      url = Uri.parse('https://servidor-ssw.onrender.com/house/gethouse/$userHouse');
     }
     response = await http.get(
       url,
