@@ -49,9 +49,9 @@ final GoRouter _router = GoRouter(
 Future registerUser(String name, String email, String password) async {
   var url;
   if (kIsWeb) {
-    url = Uri.parse('https://servidor-ssw.onrender.com/users/login');
+    url = Uri.parse('https://servidor-ssw.onrender.com/users/register');
   } else {
-    url = Uri.parse('https://servidor-ssw.onrender.com/users/login');
+    url = Uri.parse('https://servidor-ssw.onrender.com/users/register');
   }
   var response = await http.post(
     url,
