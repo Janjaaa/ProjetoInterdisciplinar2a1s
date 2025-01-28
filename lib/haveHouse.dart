@@ -54,9 +54,11 @@ class _HousePageState extends State<HousePage> {
                   if (_formKey.currentState!.validate()) {
                     var url;
                     if (kIsWeb) {
-                      url = Uri.parse('https://servidor-ssw.onrender.com/house/joinhouse');
+                      url = Uri.parse(
+                          'https://servidor-ssw.onrender.com/house/joinhouse');
                     } else {
-                      url = Uri.parse('https://servidor-ssw.onrender.com/house/joinhouse');
+                      url = Uri.parse(
+                          'https://servidor-ssw.onrender.com/house/joinhouse');
                     }
 
                     final SharedPreferences prefs =

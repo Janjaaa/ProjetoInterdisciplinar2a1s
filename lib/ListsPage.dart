@@ -510,7 +510,7 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                       Map<String, dynamic> decodedToken = parseJwt(token);
                       userName = decodedToken['data']['name'];
                       ;
-                      houseCode = decodedToken['data']['homeId'];
+                      houseCode = (await prefs.getString('houseCode'))!;
                       ;
                       userId = decodedToken['data']['userId'];
                       var url;
@@ -558,10 +558,14 @@ class _Listspage extends State<Listspage> with SingleTickerProviderStateMixin {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      houseCode,
-                      style:
-                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    Flexible(
+                      child: Text(
+                        houseCode,
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2, // Adjust the number of lines as needed
+                      ),
                     ),
                     Builder(
                       builder: (context) => IconButton(

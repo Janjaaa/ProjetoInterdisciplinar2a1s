@@ -107,9 +107,11 @@ Future loginUser(String email, String password) async {
     var url;
 
     if (kIsWeb) {
-      url = Uri.parse('https://servidor-ssw.onrender.com/house/gethouse/$userHouse');
+      url = Uri.parse(
+          'https://servidor-ssw.onrender.com/house/gethouse/$userHouse');
     } else {
-      url = Uri.parse('https://servidor-ssw.onrender.com/house/gethouse/$userHouse');
+      url = Uri.parse(
+          'https://servidor-ssw.onrender.com/house/gethouse/$userHouse');
     }
     response = await http.get(
       url,
